@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="A comprehensive, interactive DSA & System Design reference — from Big-O to distributed systems. Covers 37 topics with code examples in JavaScript and Python.">
+<meta property="og:title" content="DSA & System Design — From Zero to Wizard">
+<meta property="og:description" content="Interactive reference covering 37 DSA and System Design topics with JS & Python code examples, complexity tables, and practice problems.">
+<meta property="og:type" content="website">
+<title>DSA &amp; System Design — Foundational Knowledge</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&family=Syne:wght@700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="./css/main.css">
+</head>
+<body>
+<div class="shell">
+
+  <!-- ── SIDEBAR ── -->
+  <aside>
+    <div class="logo">
+      <div class="logo-title">DSA &amp; System Design</div>
+      <div class="logo-sub">Zero to Wizard</div>
+    </div>
+    <div class="nav-scroll" id="nav-scroll">
+
+      <div class="nav-super dsa" onclick="jumpToGroup('dsa')">⚡ DSA</div>
+
+      <div class="nav-group-label">Foundation</div>
+      <div class="nav-item" onclick="goto('complexity')"><span class="nav-dot"></span>Big-O &amp; Complexity</div>
+      <div class="nav-item" onclick="goto('arrays')"><span class="nav-dot"></span>Arrays &amp; Strings</div>
+      <div class="nav-item" onclick="goto('hashmaps')"><span class="nav-dot"></span>Hash Maps &amp; Sets</div>
+
+      <div class="nav-group-label">Patterns</div>
+      <div class="nav-item" onclick="goto('twopointers')"><span class="nav-dot"></span>Two Pointers</div>
+      <div class="nav-item" onclick="goto('slidingwindow')"><span class="nav-dot"></span>Sliding Window</div>
+
+      <div class="nav-group-label">Linear Structures</div>
+      <div class="nav-item" onclick="goto('stack')"><span class="nav-dot"></span>Stack</div>
+      <div class="nav-item" onclick="goto('queue')"><span class="nav-dot"></span>Queue &amp; Deque</div>
+      <div class="nav-item" onclick="goto('linkedlist')"><span class="nav-dot"></span>Linked Lists</div>
+
+      <div class="nav-group-label">Searching &amp; Recursion</div>
+      <div class="nav-item" onclick="goto('binarysearch')"><span class="nav-dot"></span>Binary Search</div>
+      <div class="nav-item" onclick="goto('recursion')"><span class="nav-dot"></span>Recursion &amp; Backtracking</div>
+
+      <div class="nav-group-label">Trees</div>
+      <div class="nav-item" onclick="goto('trees')"><span class="nav-dot"></span>Binary Trees</div>
+      <div class="nav-item" onclick="goto('bst')"><span class="nav-dot"></span>Binary Search Trees</div>
+      <div class="nav-item" onclick="goto('heaps')"><span class="nav-dot"></span>Heaps &amp; Priority Queue</div>
+
+      <div class="nav-group-label">Graphs</div>
+      <div class="nav-item" onclick="goto('graphsbfs')"><span class="nav-dot"></span>Graphs — BFS</div>
+      <div class="nav-item" onclick="goto('graphsdfs')"><span class="nav-dot"></span>Graphs — DFS &amp; Advanced</div>
+
+      <div class="nav-group-label">Dynamic Programming</div>
+      <div class="nav-item" onclick="goto('dpintro')"><span class="nav-dot"></span>DP Foundations</div>
+      <div class="nav-item" onclick="goto('dp1d')"><span class="nav-dot"></span>DP — Classic 1D</div>
+      <div class="nav-item" onclick="goto('dp2d')"><span class="nav-dot"></span>DP — 2D &amp; Grid</div>
+
+      <div class="nav-group-label">Advanced Topics</div>
+      <div class="nav-item" onclick="goto('greedy')"><span class="nav-dot"></span>Greedy Algorithms</div>
+      <div class="nav-item" onclick="goto('tries')"><span class="nav-dot"></span>Tries (Prefix Trees)</div>
+      <div class="nav-item" onclick="goto('sorting')"><span class="nav-dot"></span>Sorting Algorithms</div>
+      <div class="nav-item" onclick="goto('bitmanip')"><span class="nav-dot"></span>Bit Manipulation</div>
+      <div class="nav-item" onclick="goto('framework')"><span class="nav-dot"></span>Problem-Solving Framework</div>
+
+      <div class="nav-super sd" onclick="jumpToGroup('sd')">🏗 System Design</div>
+
+      <div class="nav-group-label">Foundations</div>
+      <div class="nav-item" onclick="goto('sdfundamentals')"><span class="nav-dot"></span>SD Fundamentals</div>
+      <div class="nav-item" onclick="goto('scalability')"><span class="nav-dot"></span>Scalability &amp; Load Balancing</div>
+      <div class="nav-item" onclick="goto('databases')"><span class="nav-dot"></span>Databases &amp; Storage</div>
+      <div class="nav-item" onclick="goto('caching')"><span class="nav-dot"></span>Caching Strategies</div>
+      <div class="nav-item" onclick="goto('apidesign')"><span class="nav-dot"></span>API Design</div>
+      <div class="nav-item" onclick="goto('messagequeues')"><span class="nav-dot"></span>Message Queues</div>
+
+      <div class="nav-group-label">Case Studies</div>
+      <div class="nav-item" onclick="goto('urlshortener')"><span class="nav-dot"></span>Design: URL Shortener</div>
+      <div class="nav-item" onclick="goto('twitterfeed')"><span class="nav-dot"></span>Design: Social Feed</div>
+      <div class="nav-item" onclick="goto('ratelimiter')"><span class="nav-dot"></span>Design: Rate Limiter</div>
+      <div class="nav-item" onclick="goto('distcache')"><span class="nav-dot"></span>Design: Distributed Cache</div>
+      <div class="nav-item" onclick="goto('notification')"><span class="nav-dot"></span>Design: Notification System</div>
+      <div class="nav-item" onclick="goto('filestorage')"><span class="nav-dot"></span>Design: File Storage</div>
+      <div class="nav-item" onclick="goto('chatsystem')"><span class="nav-dot"></span>Design: Chat System</div>
+      <div class="nav-item" onclick="goto('searchauto')"><span class="nav-dot"></span>Design: Search Autocomplete</div>
+    </div>
+  </aside>
+
+  <!-- ── MAIN CONTENT — sections are injected here by JS ── -->
+  <main class="main" id="main" onscroll="updateProgress()"></main>
+
+</div>
+
+<!-- ── Progress Bar ── -->
+<div class="progress-bar"><div class="progress-fill" id="progress" style="width:2.7%"></div></div>
+
+<!-- ── App entry point ── -->
+<script type="module" src="./js/app.js"></script>
+</body>
+</html>
