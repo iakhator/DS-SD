@@ -6,6 +6,11 @@ const _html_graphsdfs = String.raw`
 <div class="sec-lead">DFS explores as deep as possible before backtracking. Use it for: connected components, cycle detection, topological sort, SCCs. Union-Find is a specialized structure that handles dynamic connectivity in near O(1) per operation.</div>
 <div class="sec-divider"></div>
 <div class="sec-body">
+<div class="h2">Intuition &amp; Mental Model</div>
+<p>Think of DFS as exploring a cave system with a single torch and a ball of string. You always move deeper into whichever tunnel is in front of you, unspooling the string so you can find your way back. Only when you hit a dead end do you backtrack along the string and try a different branch. This <strong>go-deep-then-backtrack</strong> behavior is the defining character of DFS, and it means the call stack (or an explicit stack) naturally records the path from the starting node to wherever you currently are — something BFS cannot provide.</p>
+<p>That path-recording property is exactly why DFS excels at structural problems: <strong>cycle detection</strong> (a back-edge in the recursion means you revisited a node already on the current path), <strong>topological sorting</strong> (a node is only added to the result after all its dependencies are finished — i.e., after the recursive call returns), and <strong>finding strongly connected components</strong> via Kosaraju's or Tarjan's algorithm. Union-Find complements DFS by maintaining dynamic connectivity information in near-<code>O(1)</code> per query using path compression and union by rank.</p>
+<p>Reach for DFS when you need to fully explore all paths, check every possibility before committing (backtracking), or compute a property that depends on everything downstream (like subtree sizes or finishing times). A critical misconception is using three-color visited states only for cycle detection in directed graphs — in an undirected graph you simply need a boolean visited set, but for directed graphs you must distinguish "currently on stack" (gray) from "fully processed" (black) to correctly identify back-edges. Forgetting this leads to false cycle reports.</p>
+<div class="alert tip"><span class="alert-icon">💡</span><strong>Key insight:</strong> In DFS, a node's work is not "done" until the recursive call returns — this post-order completion is what makes topological sort work and why cycle detection in directed graphs requires tracking nodes that are <em>currently on the recursion stack</em>, not merely visited.</div>
 <div class="h2">Topological Sort (Kahn's Algorithm)</div>
 <div class="lang-toggle"><button class="lang-btn active" onclick="setLang(this,'js','gdfs-topo')">JS</button><button class="lang-btn py" onclick="setLang(this,'py','gdfs-topo')">Python</button></div>
 <div class="lang-panel active" id="gdfs-topo-js">
@@ -110,12 +115,12 @@ const _html_graphsdfs = String.raw`
 <div class="code-wrap"><div class="code-hdr"><span class="code-lbl">Reverse BFS</span></div><pre><span class="kw">function</span> <span class="fn">pacificAtlantic</span>(h) {
   <span class="kw">const</span> R=h.length,C=h[<span class="num">0</span>].length,dirs=[[<span class="num">1</span>,<span class="num">0</span>],[-<span class="num">1</span>,<span class="num">0</span>],[<span class="num">0</span>,<span class="num">1</span>],[<span class="num">0</span>,-<span class="num">1</span>]]
   <span class="kw">const</span> <span class="fn">bfs</span> = starts => {
-    <span class="kw">const</span> vis=<span class="kw">new</span> <span class="cls">Set</span>(starts.<span class="fn">map</span>(([r,c])=>\`${r},${c}\`)), q=[...starts]
+    <span class="kw">const</span> vis=<span class="kw">new</span> <span class="cls">Set</span>(starts.<span class="fn">map</span>(([r,c])=>&#96;&#36;{r},&#36;{c}&#96;)), q=[...starts]
     <span class="kw">while</span>(q.length){
       <span class="kw">const</span>[r,c]=q.<span class="fn">shift</span>()
       <span class="kw">for</span>(<span class="kw">const</span>[dr,dc] <span class="kw">of</span> dirs){
         <span class="kw">const</span>[nr,nc]=[r+dr,c+dc]
-        <span class="kw">const</span> key=\`${nr},${nc}\`
+        <span class="kw">const</span> key=&#96;&#36;{nr},&#36;{nc}&#96;
         <span class="kw">if</span>(nr>=<span class="num">0</span>&&nr&lt;R&&nc>=<span class="num">0</span>&&nc&lt;C&&!vis.<span class="fn">has</span>(key)&&h[nr][nc]>=h[r][c]){vis.<span class="fn">add</span>(key);q.<span class="fn">push</span>([nr,nc])}
       }
     }

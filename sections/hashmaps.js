@@ -7,6 +7,12 @@ const _html_hashmaps = String.raw`
 <div class="sec-divider"></div>
 <div class="sec-body">
 
+<div class="h2">Intuition &amp; Mental Model</div>
+<p>Picture a massive coat-check room where the attendant, instead of handing you a numbered ticket and searching sequentially, runs your name through a formula that immediately tells her which hook your coat is on. That formula is the <em>hash function</em>. As long as the formula is consistent, retrieval is just as instant as storage — <code>O(1)</code> on average, regardless of how many coats are in the room. This is the fundamental trade-off a hash map offers: you spend extra memory to build this index, and in return you eliminate the need to search.</p>
+<p>Hash maps solve the membership and frequency problems that would otherwise require a linear scan. Nested loops are often a signal that you are searching for a "counterpart" — a complement, a duplicate, an anagram key — and that a single pass with a hash map would suffice. The classic Two Sum problem illustrates this perfectly: instead of checking every pair in <code>O(n&sup2;)</code>, you store each number as you go and ask "is the complement I need already in my map?" turning the whole thing into a single <code>O(n)</code> pass.</p>
+<p>Reach for a hash map whenever you need to count frequencies, group items by a derived key, or answer "have I seen this before?" in <code>O(1)</code>. A common misconception is treating hash maps as always <code>O(1)</code> without caveats: in the worst case (many collisions) operations degrade to <code>O(n)</code>, and mutable objects used as keys can silently corrupt a map because their hash changes. Always use immutable, hashable types — strings, numbers, tuples — as keys.</p>
+<div class="alert tip"><span class="alert-icon">💡</span><strong>Key insight:</strong> If your brute-force solution has a nested loop where the inner loop is just searching for something, replace the inner loop with a hash map lookup. That single substitution is responsible for a huge fraction of interview optimizations.</div>
+
 <div class="h2">How Hashing Works</div>
 <div class="diag"><pre>
 Key → hash(key) → index in array (bucket)

@@ -10,14 +10,15 @@ import '../components/lang-toggle.js';
 
 // ── Section registry (order defines nav order) ──────────────────────────────
 const SECTIONS = [
-  'complexity','arrays','hashmaps','twopointers','slidingwindow',
+  'complexity','arrays','hashmaps','twopointers','slidingwindow','prefixsum',
   'stack','queue','linkedlist','binarysearch','recursion',
   'trees','bst','heaps','graphsbfs','graphsdfs',
   'dpintro','dp1d','dp2d','greedy','tries',
   'sorting','bitmanip','framework',
   'sdfundamentals','scalability','databases','caching','apidesign','messagequeues',
   'urlshortener','twitterfeed','ratelimiter','distcache',
-  'notification','filestorage','chatsystem','searchauto'
+  'notification','filestorage','chatsystem','searchauto',
+  'checklist'
 ];
 
 // ── Navigation ───────────────────────────────────────────────────────────────

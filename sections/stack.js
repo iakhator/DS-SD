@@ -6,6 +6,13 @@ const _html_stack = String.raw`
 <div class="sec-lead">A stack is LIFO — Last In, First Out. Push to top, pop from top. The key insight: whenever you need to track "the most recent unresolved thing," reach for a stack. Bracket matching, next greater element, undo history — all stacks.</div>
 <div class="sec-divider"></div>
 <div class="sec-body">
+
+<div class="h2">Intuition &amp; Mental Model</div>
+<p>Think of a stack of cafeteria trays: you can only add a tray on top and take one from the top — the last tray placed is the first one removed. This Last-In-First-Out (LIFO) property is exactly what you need whenever the most recently seen, not-yet-resolved item is the one that matters. Bracket matching is the canonical example: every time you encounter a closing bracket, you do not care about brackets from five levels ago — you care about the <em>innermost</em> open bracket, which is the one on top of the stack. The stack automatically tracks that nesting depth for you.</p>
+<p>Stacks solve problems involving nested or hierarchical structure, undo/redo history, and "next greater/smaller element" queries. The monotonic stack variant — where you maintain a stack that is always sorted in increasing or decreasing order — is particularly powerful. When a new element arrives and violates the sorted order, you pop everything it is greater (or lesser) than. Each popped element has found its answer: the current element is its "next greater" (or "next smaller") neighbor. Because every element is pushed once and popped once, the whole sweep is <code>O(n)</code>.</p>
+<p>Reach for a stack when you see words like "balanced," "valid," "undo," "most recent," or "next greater element" in a problem statement. A common mistake is confusing a stack with a queue — a queue is First-In-First-Out (FIFO) and is the right tool for level-order traversal or scheduling, not for matching delimiters. Another pitfall is popping from an empty stack without a guard check, which causes a runtime error; always verify the stack is non-empty before calling <code>pop()</code>.</p>
+<div class="alert tip"><span class="alert-icon">💡</span><strong>Key insight:</strong> Whenever you catch yourself asking "what was the last unresolved thing I saw?", that is a stack. The LIFO order directly models the nesting and recency that make problems like bracket matching, expression evaluation, and next-greater-element feel natural to solve.</div>
+
 <div class="h2">Monotonic Stack Pattern</div>
 <div class="diag"><pre>
 Monotonic Increasing Stack (bottom → top): [1, 3, 5, 8]

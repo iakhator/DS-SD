@@ -940,6 +940,138 @@ problem-card:hover,
   margin-top: 2px;
 }
 
+/* ── Must-Do Checklist ──────────────────────── */
+.check-summary {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 14px 18px;
+  margin: 0 0 18px;
+  flex-wrap: wrap;
+}
+
+.check-count {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+  color: #c8d0e8;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.check-count #ck-done {
+  color: var(--green);
+  font-size: 18px;
+}
+
+.check-count-sep {
+  color: var(--muted);
+  margin: 0 2px;
+}
+
+.check-count-label {
+  color: var(--muted);
+  font-weight: 600;
+  font-size: 11px;
+  letter-spacing: 0.5px;
+}
+
+.check-meter {
+  flex: 1;
+  min-width: 140px;
+  height: 7px;
+  background: var(--surface2);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.check-meter-fill {
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(90deg, var(--accent), var(--green));
+  transition: width 0.3s;
+}
+
+.check-reset {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  padding: 6px 12px;
+  border-radius: 5px;
+  border: 1px solid var(--border2);
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.check-reset:hover {
+  color: var(--red);
+  border-color: rgba(255, 95, 95, 0.4);
+}
+
+.check-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0 0 14px;
+}
+
+.check-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  padding: 9px 14px;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.check-item:hover {
+  border-color: var(--border2);
+  background: var(--surface2);
+}
+
+.check-item input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  accent-color: var(--green);
+  cursor: pointer;
+}
+
+.check-name {
+  flex: 1;
+  font-size: 13px;
+  color: #c8d0e8;
+  font-weight: 500;
+}
+
+.check-item:has(input:checked) .check-name {
+  color: var(--muted);
+  text-decoration: line-through;
+}
+
+.check-item:has(input:checked) {
+  background: rgba(45, 214, 114, 0.05);
+}
+
+.check-lc {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  color: var(--muted);
+  background: var(--tag-bg);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 2px 7px;
+  flex-shrink: 0;
+}
+
 /* ── Responsive ─────────────────────────────── */
 @media (max-width: 900px) {
   aside {

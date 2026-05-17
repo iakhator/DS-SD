@@ -10,6 +10,12 @@ const _html_complexity = String.raw`
 <div class="sec-divider"></div>
 <div class="sec-body">
 
+<div class="h2">Intuition &amp; Mental Model</div>
+<p>Think of Big-O like comparing how different routes scale as a city grows. A shortcut that saves you five minutes today (a constant) matters much less than whether your route is a straight highway or a winding road that doubles in length every time the city doubles in size. Big-O strips away those constant-time shortcuts and asks: <em>what is the shape of this algorithm's growth curve?</em> A function that runs in <code>3n + 100</code> steps and one that runs in <code>n</code> steps are both <em>linear</em> — they belong to the same family and will behave similarly at massive scale.</p>
+<p>The reason we care about growth rate rather than raw speed is that hardware improves constantly, but a fundamentally bad algorithm stays bad. An <code>O(n&sup2;)</code> solution that processes a million items requires a trillion operations — no processor upgrade fixes that. Big-O gives you a hardware-independent vocabulary to classify algorithms, which is why interviewers treat it as a baseline expectation. It also guides trade-offs: sometimes you accept a worse time complexity to get a better space complexity, or vice versa.</p>
+<p>Reach for Big-O analysis any time you write a loop, call a library function, or choose a data structure. The most common mistake beginners make is confusing <em>average-case</em> with <em>worst-case</em> complexity — Big-O is normally worst-case unless explicitly stated otherwise. A second pitfall is forgetting hidden loops: calling <code>.sort()</code> inside a loop turns an apparent <code>O(n)</code> into <code>O(n&sup2; log n)</code>.</p>
+<div class="alert tip"><span class="alert-icon">💡</span><strong>Key insight:</strong> Drop constants and lower-order terms, then ask yourself: if the input doubles, does the work double (<code>O(n)</code>), quadruple (<code>O(n&sup2;)</code>), or barely change (<code>O(log n)</code>)? That question is the heart of every Big-O analysis.</div>
+
 <div class="h2">What Big-O Actually Measures</div>
 <p>Big-O is an upper bound on growth rate. We drop constants and lower-order terms because they're irrelevant at scale. <code>3n² + 5n + 100</code> → <code>O(n²)</code>. We care about the <em>shape</em> of the growth curve, not the exact milliseconds.</p>
 

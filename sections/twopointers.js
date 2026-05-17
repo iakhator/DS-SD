@@ -7,6 +7,12 @@ const _html_twopointers = String.raw`
 <div class="sec-divider"></div>
 <div class="sec-body">
 
+<div class="h2">Intuition &amp; Mental Model</div>
+<p>Imagine two people reading the same book — one starting from page one and the other starting from the last page — both moving inward and calling out whenever their pages together tell a meaningful story. That is the essence of the opposite-ends two-pointer pattern. Because the array is sorted, you have a decisive rule at every step: if the two values sum to too little, advance the left reader forward to a bigger number; if they sum to too much, retreat the right reader backward to a smaller number. This determinism is what collapses an <code>O(n&sup2;)</code> search into a single <code>O(n)</code> pass.</p>
+<p>Two pointers solve the problem of finding relationships between elements — pairs, triplets, or subarrays — without examining every possible combination. The brute-force approach nests loops because it lacks information about which pairs to skip. Sorting provides that information: once the array is ordered, moving a pointer in one direction strictly increases (or decreases) the value, so you never need to backtrack to combinations you have logically ruled out. The fast-and-slow variant exploits the same idea in linked lists, where Floyd's cycle detection works because a faster pointer will inevitably lap a slower one if a cycle exists.</p>
+<p>Reach for two pointers when the problem involves a sorted collection and asks for pairs or subarrays meeting a numeric constraint, or when you need to detect cycles or find the middle of a linked list. The most common mistake is applying the opposite-ends pattern to an <em>unsorted</em> array — without sorted order the decisive move rule breaks down entirely and the approach produces wrong answers. Always check: is the input sorted, or can I afford to sort it first (<code>O(n log n)</code>)?</p>
+<div class="alert tip"><span class="alert-icon">💡</span><strong>Key insight:</strong> Two pointers work because sorted order gives you a <em>decision rule</em> at every step — you always know which pointer to move. If you cannot state that rule clearly for your problem, the pattern may not apply.</div>
+
 <div class="h2">Three Patterns</div>
 <div class="grid-3">
   <div class="card"><div class="card-title blue">Opposite Ends</div><p>l=0, r=n-1, move inward. Use on sorted array to find pairs: if sum too big → r--; too small → l++.</p></div>

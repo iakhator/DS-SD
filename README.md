@@ -1,18 +1,21 @@
 # DSA & System Design — Foundational Knowledge
 
-An interactive, self-contained reference covering **37 topics** across Data Structures & Algorithms and System Design. No frameworks. No dependencies. Just open `index.html` via a local server and go.
+An interactive, self-contained reference covering **39 topics** across Data Structures & Algorithms and System Design. No frameworks. No dependencies. Just open `index.html` via a local server and go.
 
-![Topics](https://img.shields.io/badge/topics-37-4f8fff) ![Language](https://img.shields.io/badge/language-HTML%20%2F%20JS-2dd672) ![License](https://img.shields.io/badge/license-MIT-7c5cfc)
+![Topics](https://img.shields.io/badge/topics-39-4f8fff) ![Language](https://img.shields.io/badge/language-HTML%20%2F%20JS-2dd672) ![License](https://img.shields.io/badge/license-MIT-7c5cfc)
 
 ---
 
 ## What's Inside
 
-**DSA (23 topics):** Big-O · Arrays · Hash Maps · Two Pointers · Sliding Window · Stack · Queue · Linked Lists · Binary Search · Recursion · Trees · BST · Heaps · BFS · DFS · DP (1D & 2D) · Greedy · Tries · Sorting · Bit Manipulation · Problem Framework
+**DSA (24 topics):** Big-O · Arrays · Hash Maps · Two Pointers · Sliding Window · Prefix Sum · Stack · Queue · Linked Lists · Binary Search · Recursion · Trees · BST · Heaps · BFS · DFS · DP (1D & 2D) · Greedy · Tries · Sorting · Bit Manipulation · Problem Framework
 
 **System Design (14 topics):** Fundamentals · Scalability · Databases · Caching · API Design · Message Queues · URL Shortener · Social Feed · Rate Limiter · Distributed Cache · Notifications · File Storage · Chat System · Search Autocomplete
 
+**Practice (1):** Must-Do Problem Set — a pattern-organised, progress-tracked checklist of 50+ interview problems and core system-design prompts.
+
 Each topic includes:
+- An **Intuition & Mental Model** primer — plain-language analogy, why it works, and when to use it
 - Concept explanation with ASCII diagrams
 - Code examples in **JavaScript** and **Python** (tabbed)
 - Complexity tables

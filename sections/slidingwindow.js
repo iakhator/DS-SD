@@ -7,6 +7,12 @@ const _html_slidingwindow = String.raw`
 <div class="sec-divider"></div>
 <div class="sec-body">
 
+<div class="h2">Intuition &amp; Mental Model</div>
+<p>Imagine scanning a long document for the densest cluster of keywords using a physical magnifying glass. You slide the glass from left to right — you never lift it and restart from the beginning for each position. When you slide the glass one step to the right, you lose whatever was on the far left edge and gain whatever just entered on the right. That incremental update, rather than a full recompute, is the key insight behind sliding window. It converts an <code>O(n&sup2;)</code> "check every subarray" brute force into a single left-to-right sweep that runs in <code>O(n)</code>.</p>
+<p>Sliding window solves contiguous-subarray and substring problems where you care about some aggregate property of the window — its sum, the count of distinct characters, the frequency of a specific element. The algorithm works because the property can be updated incrementally: adding one element on the right and removing one on the left each require only a constant amount of work, no matter the window size. This holds for sums, frequency maps, and many other window states, making the pattern broadly applicable.</p>
+<p>Reach for sliding window whenever the problem asks for the longest, shortest, or maximum-value contiguous subarray or substring satisfying some constraint. A common misconception is using a nested loop to shrink the window — beginners write an inner <code>for</code> loop that resets <code>l</code> all the way to <code>r</code>. The correct approach uses a <code>while</code> that only shrinks until the window is valid again; because each element enters and exits the window at most once, the total work is still <code>O(n)</code>.</p>
+<div class="alert tip"><span class="alert-icon">💡</span><strong>Key insight:</strong> Every element enters the window exactly once and leaves it exactly once, so the total number of operations across the entire pass is <code>O(2n) = O(n)</code> — no matter how many times the window shrinks and grows.</div>
+
 <div class="h2">Fixed vs Variable Window</div>
 <div class="grid-2">
   <div class="card"><div class="card-title blue">Fixed Size Window (k)</div><p>Window always has exactly k elements. Slide right: add nums[r], subtract nums[r-k]. No while loop needed.</p></div>

@@ -7,6 +7,12 @@ const _html_arrays = String.raw`
 <div class="sec-divider"></div>
 <div class="sec-body">
 
+<div class="h2">Intuition &amp; Mental Model</div>
+<p>Imagine a row of numbered post-office boxes bolted to a wall. Every box is the same size, they sit side-by-side in memory, and you can walk directly to box #42 without checking any other box first — that is constant-time random access, <code>O(1)</code>. The physical metaphor also explains the cost of insertion: if you want to squeeze a new box between boxes 3 and 4, you have to slide every box from 4 onward one position to the right, which is <code>O(n)</code> work. Arrays are the fundamental building block almost every other data structure is built upon, so internalizing this layout pays dividends everywhere.</p>
+<p>Arrays solve the problem of storing and retrieving ordered data with minimal overhead. Because elements live at contiguous memory addresses, the CPU cache loves them — iterating an array is much faster in practice than the same traversal on a linked list, even though both are <code>O(n)</code> on paper. Many elegant algorithmic techniques — prefix sums, two pointers, sliding window — exist precisely to exploit this contiguous layout and avoid repeatedly re-scanning the same elements.</p>
+<p>Reach for arrays (or the language's dynamic-array equivalent like a Python list or a JavaScript array) whenever you need fast indexed access, know the rough size of your data, or plan to iterate sequentially. A common mistake is building a result string by concatenating in a loop: each concatenation copies the entire string so far, turning an innocent-looking loop into <code>O(n&sup2;)</code> work. The fix is to collect parts in an array and join once at the end — a pattern worth memorizing immediately.</p>
+<div class="alert tip"><span class="alert-icon">💡</span><strong>Key insight:</strong> Arrays give you <code>O(1)</code> read and <code>O(1)</code> append-to-end, but <code>O(n)</code> insert/delete anywhere else. Design your algorithm to touch the end of the array, not the middle, whenever possible.</div>
+
 <div class="h2">Core Concepts</div>
 <div class="diag"><pre>
 Array: [10][20][30][40][50]
