@@ -1,5 +1,7 @@
 // Section: dp2d
 // Auto-extracted from index.html
+import { autoWrapCodeLines, withCode, mountVisualizer, renderGrid } from '../components/viz-kit.js';
+
 const _html_dp2d = String.raw`
 <div id="sec-dp2d" class="section">
 <div class="sec-header"><div class="sec-meta"><span class="sec-badge dsa">DP · 18</span></div><div class="sec-title">DP — 2D & Grid Problems</div></div>
@@ -60,6 +62,7 @@ const _html_dp2d = String.raw`
             dp[i][j] = dp[i-<span class="py-num">1</span>][j-<span class="py-num">1</span>]+<span class="py-num">1</span> <span class="py-kw">if</span> t1[i-<span class="py-num">1</span>]==t2[j-<span class="py-num">1</span>] <span class="py-kw">else</span> <span class="py-fn">max</span>(dp[i-<span class="py-num">1</span>][j],dp[i][j-<span class="py-num">1</span>])
     <span class="py-kw">return</span> dp[m][n]</pre></div>
 </div>
+<algo-visualizer id="viz-dp2d-p1" title="LCS Table — trace"></algo-visualizer>
 </problem-card>
 
 <problem-card num="P2" title="Edit Distance (Levenshtein)" difficulty="hard" tags="2D DP,Classic">
@@ -87,6 +90,7 @@ const _html_dp2d = String.raw`
             <span class="py-kw">else</span>: dp[i][j]=<span class="py-num">1</span>+<span class="py-fn">min</span>(dp[i-<span class="py-num">1</span>][j],dp[i][j-<span class="py-num">1</span>],dp[i-<span class="py-num">1</span>][j-<span class="py-num">1</span>])
     <span class="py-kw">return</span> dp[m][n]</pre></div>
 </div>
+<algo-visualizer id="viz-dp2d-p2" title="Edit Distance Table — trace"></algo-visualizer>
 </problem-card>
 
 <problem-card num="P3" title="Maximal Square" difficulty="medium" tags="2D DP,Grid">
@@ -120,6 +124,7 @@ const _html_dp2d = String.raw`
                 best = <span class="py-fn">max</span>(best, dp[i][j])
     <span class="py-kw">return</span> best * best</pre></div>
 </div>
+<algo-visualizer id="viz-dp2d-p3" title="Maximal Square DP — trace"></algo-visualizer>
 </problem-card>
 
 <problem-card num="P4" title="Distinct Subsequences" difficulty="hard" tags="2D DP">
@@ -148,6 +153,7 @@ const _html_dp2d = String.raw`
             <span class="py-kw">if</span> s[i-<span class="py-num">1</span>]==t[j-<span class="py-num">1</span>]: dp[i][j] += dp[i-<span class="py-num">1</span>][j-<span class="py-num">1</span>]
     <span class="py-kw">return</span> dp[m][n]</pre></div>
 </div>
+<algo-visualizer id="viz-dp2d-p4" title="Distinct Subsequences — trace"></algo-visualizer>
 </problem-card>
 
 <problem-card num="P5" title="Burst Balloons (Interval DP)" difficulty="hard" tags="Interval DP,Hard">
@@ -183,16 +189,171 @@ const _html_dp2d = String.raw`
                 dp[l][r] = <span class="py-fn">max</span>(dp[l][r], dp[l][k]+dp[k][r]+nums[l]*nums[k]*nums[r])
     <span class="py-kw">return</span> dp[<span class="py-num">0</span>][n-<span class="py-num">1</span>]</pre></div>
 </div>
+<algo-visualizer id="viz-dp2d-p5" title="Interval DP — trace"></algo-visualizer>
 </problem-card>
 </div></div></div>
 `;
 
 (function() {
   const main = document.getElementById('main');
+  let section;
   if (main) {
     const wrapper = document.createElement('div');
     wrapper.innerHTML = _html_dp2d.trim();
-    const section = wrapper.firstElementChild;
+    section = wrapper.firstElementChild;
     if (section) main.appendChild(section);
   }
+  if (section) autoWrapCodeLines(section);
+  wireVisualizers();
 })();
+
+// ── Visualizer wiring — traces + renderers for the 2D DP problems ───────────
+function wireVisualizers() {
+  // ── P1: Longest Common Subsequence ──────────────────────────────────────
+  function traceLCS(t1, t2) {
+    const m = t1.length, n = t2.length;
+    const dp = Array.from({ length: m + 1 }, () => new Array(n + 1).fill(0));
+    const steps = [{ dp: dp.map(r => [...r]), i: 0, j: 0, note: 'Base row/col = 0 (empty string has no common subsequence).', line: 3, pyLine: 3 }];
+    for (let i = 1; i <= m; i++) {
+      for (let j = 1; j <= n; j++) {
+        const match = t1[i - 1] === t2[j - 1];
+        dp[i][j] = match ? dp[i - 1][j - 1] + 1 : Math.max(dp[i - 1][j], dp[i][j - 1]);
+        steps.push({ dp: dp.map(r => [...r]), i, j, match,
+          note: `(${i},${j}): '${t1[i - 1]}' vs '${t2[j - 1]}' → ${match ? `match → diagonal+1 = ${dp[i][j]}` : `no match → max(up,left) = ${dp[i][j]}`}.`, line: 5, pyLine: 6 });
+      }
+    }
+    steps.push({ dp: dp.map(r => [...r]), i: m, j: n, final: true, note: `Done. LCS length = ${dp[m][n]}.`, line: 6, pyLine: 7 });
+    return steps;
+  }
+
+  function renderLCS() {
+    return (stage, step) => {
+      stage.innerHTML = renderGrid(step.dp, (v, r, c) => {
+        if (step.final) return (r === step.i && c === step.j) ? 'match' : '';
+        if (r === step.i && c === step.j) return step.match ? 'match' : 'cur';
+        return '';
+      }, 34);
+    };
+  }
+
+  // ── P2: Edit Distance (Levenshtein) ─────────────────────────────────────
+  function traceMinDistance(w1, w2) {
+    const m = w1.length, n = w2.length;
+    const dp = Array.from({ length: m + 1 }, (_, i) => Array.from({ length: n + 1 }, (_, j) => i || j));
+    const steps = [{ dp: dp.map(r => [...r]), i: 0, j: 0, note: 'Base row/col = distance to/from empty string.', line: 3, pyLine: 3 }];
+    for (let i = 1; i <= m; i++) {
+      for (let j = 1; j <= n; j++) {
+        const match = w1[i - 1] === w2[j - 1];
+        dp[i][j] = match ? dp[i - 1][j - 1] : 1 + Math.min(dp[i - 1][j], dp[i][j - 1], dp[i - 1][j - 1]);
+        steps.push({ dp: dp.map(r => [...r]), i, j, match,
+          note: `(${i},${j}): '${w1[i - 1]}' vs '${w2[j - 1]}' → ${match ? `match → copy diagonal = ${dp[i][j]}` : `mismatch → 1+min(up,left,diag) = ${dp[i][j]}`}.`,
+          line: 5, pyLine: match ? 6 : 7 });
+      }
+    }
+    steps.push({ dp: dp.map(r => [...r]), i: m, j: n, final: true, note: `Done. Edit distance = ${dp[m][n]}.`, line: 6, pyLine: 8 });
+    return steps;
+  }
+
+  function renderMinDistance() {
+    return (stage, step) => {
+      stage.innerHTML = renderGrid(step.dp, (v, r, c) => {
+        if (step.final) return (r === step.i && c === step.j) ? 'match' : '';
+        if (r === step.i && c === step.j) return step.match ? 'match' : 'cur';
+        return '';
+      }, 34);
+    };
+  }
+
+  // ── P3: Maximal Square ────────────────────────────────────────────────────
+  function traceMaximalSquare(matrix) {
+    const R = matrix.length, C = matrix[0].length;
+    const dp = Array.from({ length: R + 1 }, () => new Array(C + 1).fill(0));
+    let max = 0;
+    const steps = [{ dp: dp.map(r => [...r]), i: 0, j: 0, max, note: 'Base row/col = 0.', line: 3, pyLine: 3 }];
+    for (let i = 1; i <= R; i++) {
+      for (let j = 1; j <= C; j++) {
+        if (matrix[i - 1][j - 1] === '1') {
+          dp[i][j] = Math.min(dp[i - 1][j], dp[i][j - 1], dp[i - 1][j - 1]) + 1;
+          max = Math.max(max, dp[i][j]);
+          steps.push({ dp: dp.map(r => [...r]), i, j, max, note: `(${i},${j})='1' → dp=min(up,left,diag)+1=${dp[i][j]}. max side=${max}.`, line: 7, pyLine: 7 });
+        }
+      }
+    }
+    steps.push({ dp: dp.map(r => [...r]), i: R, j: C, max, final: true, note: `Done. Max square area = ${max * max}.`, line: 11, pyLine: 9 });
+    return steps;
+  }
+
+  function renderMaximalSquare() {
+    return (stage, step) => {
+      stage.innerHTML = `
+        ${renderGrid(step.dp, (v, r, c) => step.final ? '' : (r === step.i && c === step.j ? 'cur' : ''), 34)}
+        <div class="viz-panels" style="margin-top:8px"><div class="viz-panel"><div class="viz-counter">${step.max * step.max}<span class="viz-counter-label">max square area</span></div></div></div>`;
+    };
+  }
+
+  // ── P4: Distinct Subsequences ─────────────────────────────────────────────
+  function traceNumDistinct(s, t) {
+    const m = s.length, n = t.length;
+    const dp = Array.from({ length: m + 1 }, () => new Array(n + 1).fill(0));
+    for (let i = 0; i <= m; i++) dp[i][0] = 1;
+    const steps = [{ dp: dp.map(r => [...r]), i: 0, j: 0, note: 'Base col — empty t is always a subsequence (1 way).', line: 4, pyLine: 4 }];
+    for (let i = 1; i <= m; i++) {
+      for (let j = 1; j <= n; j++) {
+        dp[i][j] = dp[i - 1][j];
+        const match = s[i - 1] === t[j - 1];
+        if (match) dp[i][j] += dp[i - 1][j - 1];
+        steps.push({ dp: dp.map(r => [...r]), i, j, match,
+          note: `(${i},${j}): skip → ${dp[i - 1][j]}${match ? ` + use match '${s[i - 1]}' → +${dp[i - 1][j - 1]}` : ''} = ${dp[i][j]}.`,
+          line: match ? 7 : 6, pyLine: match ? 8 : 7 });
+      }
+    }
+    steps.push({ dp: dp.map(r => [...r]), i: m, j: n, final: true, note: `Done. Distinct subsequences = ${dp[m][n]}.`, line: 9, pyLine: 9 });
+    return steps;
+  }
+
+  function renderNumDistinct() {
+    return (stage, step) => {
+      stage.innerHTML = renderGrid(step.dp, (v, r, c) => {
+        if (step.final) return (r === step.i && c === step.j) ? 'match' : '';
+        if (r === step.i && c === step.j) return step.match ? 'match' : 'cur';
+        return '';
+      }, 32);
+    };
+  }
+
+  // ── P5: Burst Balloons — interval DP ─────────────────────────────────────
+  function traceMaxCoins(nums) {
+    const padded = [1, ...nums, 1];
+    const n = padded.length;
+    const dp = Array.from({ length: n }, () => new Array(n).fill(0));
+    const steps = [{ dp: dp.map(r => [...r]), l: 0, r: 0, note: `Padded: [${padded.join(',')}].`, line: 4, pyLine: 4 }];
+    for (let len = 2; len < n; len++) {
+      for (let l = 0; l < n - len; l++) {
+        const r = l + len;
+        for (let k = l + 1; k < r; k++) dp[l][r] = Math.max(dp[l][r], dp[l][k] + dp[k][r] + padded[l] * padded[k] * padded[r]);
+        steps.push({ dp: dp.map(row => [...row]), l, r, note: `interval (${l},${r}): best last-burst choice → dp[${l}][${r}]=${dp[l][r]}.`, line: 9, pyLine: 9 });
+      }
+    }
+    steps.push({ dp: dp.map(r => [...r]), l: 0, r: n - 1, final: true, note: `Done. Max coins = ${dp[0][n - 1]}.`, line: 12, pyLine: 10 });
+    return steps;
+  }
+
+  function renderMaxCoins() {
+    return (stage, step) => {
+      stage.innerHTML = renderGrid(step.dp, (v, r, c) => {
+        if (step.final) return (r === step.l && c === step.r) ? 'match' : '';
+        return (r === step.l && c === step.r) ? 'cur' : '';
+      }, 34);
+    };
+  }
+
+  // ── Attach everything once the elements exist in the DOM ────────────────
+  mountVisualizer('viz-dp2d-p1', traceLCS('abcde', 'ace'), withCode('dp2d-p1', renderLCS()));
+  mountVisualizer('viz-dp2d-p2', traceMinDistance('horse', 'ros'), withCode('dp2d-p2', renderMinDistance()));
+
+  const p3Matrix = [['1', '0', '1', '0', '0'], ['1', '0', '1', '1', '1'], ['1', '1', '1', '1', '1'], ['1', '0', '0', '1', '0']];
+  mountVisualizer('viz-dp2d-p3', traceMaximalSquare(p3Matrix), withCode('dp2d-p3', renderMaximalSquare()));
+
+  mountVisualizer('viz-dp2d-p4', traceNumDistinct('rabbbit', 'rabbit'), withCode('dp2d-p4', renderNumDistinct()));
+  mountVisualizer('viz-dp2d-p5', traceMaxCoins([3, 1, 5, 8]), withCode('dp2d-p5', renderMaxCoins()));
+}

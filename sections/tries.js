@@ -1,5 +1,7 @@
 // Section: tries
 // Auto-extracted from index.html
+import { autoWrapCodeLines, chips, withCode, mountVisualizer } from '../components/viz-kit.js';
+
 const _html_tries = String.raw`
 <div id="sec-tries" class="section">
 <div class="sec-header"><div class="sec-meta"><span class="sec-badge dsa">Advanced · 20</span></div><div class="sec-title">Tries (Prefix Trees)</div></div>
@@ -74,15 +76,72 @@ const _html_tries = String.raw`
             <span class="py-kw">if</span> c <span class="py-kw">not in</span> node.children: <span class="py-kw">return</span> <span class="py-kw">False</span>
             node = node.children[c]
         <span class="py-kw">return</span> <span class="py-kw">True</span></pre></div></div>
+<algo-visualizer id="viz-trie-demo" title="Insert / Search / StartsWith — trace"></algo-visualizer>
 </div></div>
 `;
 
 (function() {
   const main = document.getElementById('main');
+  let section;
   if (main) {
     const wrapper = document.createElement('div');
     wrapper.innerHTML = _html_tries.trim();
-    const section = wrapper.firstElementChild;
+    section = wrapper.firstElementChild;
     if (section) main.appendChild(section);
   }
+  if (section) autoWrapCodeLines(section);
+  wireVisualizers();
 })();
+
+// ── Visualizer wiring — insert/search/startsWith demo trace ─────────────────
+function wireVisualizers() {
+  function traceTrieDemo() {
+    const root = { children: {}, isEnd: false };
+    function insert(word) {
+      let node = root;
+      for (const c of word) {
+        if (!node.children[c]) node.children[c] = { children: {}, isEnd: false };
+        node = node.children[c];
+      }
+      node.isEnd = true;
+    }
+    function search(word, requireEnd) {
+      let node = root;
+      for (const c of word) {
+        if (!node.children[c]) return false;
+        node = node.children[c];
+      }
+      return requireEnd ? node.isEnd : true;
+    }
+
+    const words = ['cat', 'car', 'card'];
+    const inserted = [];
+    const steps = [{ inserted: [], op: null, note: 'Start — empty trie.', line: 24, pyLine: 58 }];
+    for (const w of words) {
+      insert(w);
+      inserted.push(w);
+      steps.push({ inserted: [...inserted], op: `insert("${w}")`, note: `insert("${w}") → create nodes for any new characters, mark end of word.`, line: 17, pyLine: 11 });
+    }
+    const r1 = search('car', true);
+    steps.push({ inserted: [...inserted], op: 'search("car")', result: r1, note: `search("car") → path exists and isEnd=true → ${r1}.`, line: 26, pyLine: 17 });
+    const r2 = search('ca', true);
+    steps.push({ inserted: [...inserted], op: 'search("ca")', result: r2, note: `search("ca") → path exists but isEnd=false (only a prefix) → ${r2}.`, line: 26, pyLine: 17 });
+    const r3 = search('ca', false);
+    steps.push({ inserted: [...inserted], op: 'startsWith("ca")', result: r3, final: true, note: `startsWith("ca") → path exists → ${r3}.`, line: 35, pyLine: 23 });
+    return steps;
+  }
+
+  function renderTrieDemo() {
+    return (stage, step) => {
+      stage.innerHTML = `
+        <div class="viz-panel-lbl">words inserted</div>
+        ${chips(step.inserted, ' new')}
+        <div class="viz-panels" style="margin-top:8px">
+          <div class="viz-panel"><div class="viz-panel-lbl">operation</div><div class="viz-counter" style="font-size:18px">${step.op ?? '—'}</div></div>
+          ${step.result !== undefined ? `<div class="viz-panel"><div class="viz-panel-lbl">result</div><div class="viz-counter" style="font-size:20px">${step.result}</div></div>` : ''}
+        </div>`;
+    };
+  }
+
+  mountVisualizer('viz-trie-demo', traceTrieDemo(), withCode('trie-impl', renderTrieDemo()));
+}

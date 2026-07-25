@@ -1,5 +1,7 @@
 // Section: bst
 // Auto-extracted from index.html
+import { autoWrapCodeLines, chips, withCode, mountVisualizer, buildTree, cloneTree, treeLevels, renderTree } from '../components/viz-kit.js';
+
 const _html_bst = String.raw`
 <div id="sec-bst" class="section">
 <div class="sec-header"><div class="sec-meta"><span class="sec-badge dsa">Trees · 12</span></div><div class="sec-title">Binary Search Trees</div></div>
@@ -59,6 +61,7 @@ Delete: 3 cases:
     <span class="py-kw">return</span> <span class="py-fn">is_valid_bst</span>(root.left, lo, root.val) <span class="py-kw">and</span> \
            <span class="py-fn">is_valid_bst</span>(root.right, root.val, hi)</pre></div>
 </div>
+<algo-visualizer id="viz-bst-p1" title="Min/Max Bounds — trace"></algo-visualizer>
 </problem-card>
 
 <problem-card num="P2" title="Kth Smallest Element in BST" difficulty="medium" tags="Inorder,BST">
@@ -88,6 +91,7 @@ Delete: 3 cases:
         <span class="py-kw">if</span> k == <span class="py-num">0</span>: <span class="py-kw">return</span> curr.val
         curr = curr.right</pre></div>
 </div>
+<algo-visualizer id="viz-bst-p2" title="Iterative In-order — trace"></algo-visualizer>
 </problem-card>
 
 <problem-card num="P3" title="BST Insert & Delete" difficulty="medium" tags="BST,Recursion">
@@ -136,6 +140,7 @@ Delete: 3 cases:
         root.right = <span class="py-fn">delete_bst</span>(root.right, succ.val)
     <span class="py-kw">return</span> root</pre></div>
 </div>
+<algo-visualizer id="viz-bst-p3" title="Insert — trace"></algo-visualizer>
 </problem-card>
 
 <problem-card num="P4" title="Lowest Common Ancestor of BST" difficulty="easy" tags="BST Property">
@@ -154,6 +159,7 @@ Delete: 3 cases:
     <span class="py-kw">if</span> p.val > root.val <span class="py-kw">and</span> q.val > root.val: <span class="py-kw">return</span> <span class="py-fn">lca_bst</span>(root.right, p, q)
     <span class="py-kw">return</span> root</pre></div>
 </div>
+<algo-visualizer id="viz-bst-p4" title="BST Ordering — trace"></algo-visualizer>
 </problem-card>
 
 <problem-card num="P5" title="Recover BST (Two Nodes Swapped)" difficulty="hard" tags="In-order,Morris Traversal">
@@ -193,16 +199,188 @@ Delete: 3 cases:
     <span class="py-fn">inorder</span>(root)
     first.val, second.val = second.val, first.val</pre></div>
 </div>
+<algo-visualizer id="viz-bst-p5" title="In-order Violation Scan — trace"></algo-visualizer>
 </problem-card>
 </div></div></div>
 `;
 
 (function() {
   const main = document.getElementById('main');
+  let section;
   if (main) {
     const wrapper = document.createElement('div');
     wrapper.innerHTML = _html_bst.trim();
-    const section = wrapper.firstElementChild;
+    section = wrapper.firstElementChild;
     if (section) main.appendChild(section);
   }
+  if (section) autoWrapCodeLines(section);
+  wireVisualizers();
 })();
+
+// ── Visualizer wiring — traces + renderers for the BST problems ─────────────
+function wireVisualizers() {
+  const fmt = v => v === Infinity ? '∞' : v === -Infinity ? '-∞' : v;
+
+  // ── P1: Validate BST — min/max bounds ───────────────────────────────────
+  function traceIsValidBST(root) {
+    const steps = [{ visiting: null, note: 'Start — bounds (-∞, ∞).', line: 1, pyLine: 1 }];
+    function dfs(node, min, max) {
+      if (!node) {
+        steps.push({ visiting: null, note: 'null → valid (base case).', line: 2, pyLine: 2 });
+        return true;
+      }
+      if (node.val <= min || node.val >= max) {
+        steps.push({ visiting: node.id, invalid: true, final: true, stop: true,
+          note: `node ${node.val}: must be in (${fmt(min)}, ${fmt(max)}) → violates bounds → INVALID.`, line: 3, pyLine: 3 });
+        return false;
+      }
+      steps.push({ visiting: node.id, note: `node ${node.val}: within (${fmt(min)}, ${fmt(max)}) → recurse with updated bounds.`, line: 4, pyLine: 4 });
+      return dfs(node.left, min, node.val) && dfs(node.right, node.val, max);
+    }
+    const valid = dfs(root, -Infinity, Infinity);
+    if (valid) steps.push({ visiting: null, final: true, note: 'Done. All nodes within bounds → VALID BST.', line: 4, pyLine: 4 });
+    return steps;
+  }
+
+  function renderIsValidBST(root) {
+    const levels = treeLevels(root);
+    return (stage, step) => {
+      stage.innerHTML = renderTree(levels, n => step.final ? (n.id === step.visiting ? (step.invalid ? 'dup' : 'match') : 'dim') : (n.id === step.visiting ? 'cur' : ''));
+    };
+  }
+
+  // ── P2: Kth Smallest Element in BST — iterative in-order ────────────────
+  function traceKthSmallest(root, k) {
+    const stack = [];
+    let curr = root, kk = k;
+    const steps = [{ stack: [], visiting: curr ? curr.id : null, note: `Start — k=${k}.`, line: 2, pyLine: 2 }];
+    while (curr || stack.length) {
+      while (curr) {
+        stack.push(curr);
+        steps.push({ stack: stack.map(n => n.val), visiting: curr.id, note: `push ${curr.val}, go left.`, line: 4, pyLine: 4 });
+        curr = curr.left;
+      }
+      curr = stack.pop();
+      kk--;
+      if (kk === 0) {
+        steps.push({ stack: stack.map(n => n.val), visiting: curr.id, found: true, final: true, stop: true,
+          note: `pop ${curr.val}, k reaches 0 → kth smallest = ${curr.val}.`, line: 6, pyLine: 7 });
+        return steps;
+      }
+      steps.push({ stack: stack.map(n => n.val), visiting: curr.id, note: `pop ${curr.val} (${kk} more to go), go right.`, line: 7, pyLine: 8 });
+      curr = curr.right;
+    }
+    return steps;
+  }
+
+  function renderKthSmallest(root) {
+    const levels = treeLevels(root);
+    return (stage, step) => {
+      stage.innerHTML = `
+        ${renderTree(levels, n => step.final ? (n.id === step.visiting ? 'match' : 'dim') : (n.id === step.visiting ? 'cur' : ''))}
+        <div class="viz-panel-lbl" style="margin-top:10px">stack</div>
+        ${chips(step.stack)}`;
+    };
+  }
+
+  // ── P3: BST Insert ───────────────────────────────────────────────────────
+  function traceInsertBST(root, val) {
+    const steps = [{ tree: cloneTree(root), visiting: null, note: `Start — insert ${val}.`, line: 1, pyLine: 1 }];
+    function insert(node) {
+      if (!node) return { val, left: null, right: null, id: -1 };
+      steps.push({ tree: cloneTree(root), visiting: node.id, note: `at node ${node.val}: ${val} ${val < node.val ? '< go left' : '≥ go right'}.`, line: 3, pyLine: 3 });
+      if (val < node.val) node.left = insert(node.left);
+      else node.right = insert(node.right);
+      return node;
+    }
+    root = insert(root);
+    steps.push({ tree: cloneTree(root), visiting: -1, final: true, note: `Inserted ${val} as a new leaf.`, line: 2, pyLine: 2 });
+    return steps;
+  }
+
+  function renderInsertBST() {
+    return (stage, step) => {
+      const levels = treeLevels(step.tree);
+      stage.innerHTML = renderTree(levels, n => step.final ? (n.id === -1 ? 'match' : 'dim') : (n.id === step.visiting ? 'cur' : ''));
+    };
+  }
+
+  // ── P4: LCA of BST — use ordering, no need to search both sides ────────
+  function traceLCABST(root, pVal, qVal) {
+    const steps = [{ visiting: root.id, note: `Start at root ${root.val}. Find LCA of ${pVal} and ${qVal}.`, line: 2, pyLine: 1 }];
+    function dfs(node) {
+      if (pVal < node.val && qVal < node.val) {
+        steps.push({ visiting: node.id, note: `${pVal} and ${qVal} both < ${node.val} → go left.`, line: 3, pyLine: 2 });
+        return dfs(node.left);
+      }
+      if (pVal > node.val && qVal > node.val) {
+        steps.push({ visiting: node.id, note: `${pVal} and ${qVal} both > ${node.val} → go right.`, line: 4, pyLine: 3 });
+        return dfs(node.right);
+      }
+      steps.push({ visiting: node.id, final: true, stop: true, note: `${pVal} and ${qVal} split here → LCA is ${node.val}.`, line: 5, pyLine: 4 });
+      return node;
+    }
+    dfs(root);
+    return steps;
+  }
+
+  function renderLCABST(root) {
+    const levels = treeLevels(root);
+    return (stage, step) => {
+      stage.innerHTML = renderTree(levels, n => step.final ? (n.id === step.visiting ? 'match' : 'dim') : (n.id === step.visiting ? 'cur' : ''));
+    };
+  }
+
+  // ── P5: Recover BST — in-order violation scan ───────────────────────────
+  function traceRecoverTree(root) {
+    let first = null, second = null, prev = null;
+    const steps = [{ tree: cloneTree(root), visiting: null, note: 'Start in-order scan.', line: 3, pyLine: 3 }];
+    function inorder(node) {
+      if (!node) return;
+      inorder(node.left);
+      let violation = false;
+      let note = `visit ${node.val}.`;
+      if (prev && prev.val > node.val) {
+        if (!first) first = prev;
+        second = node;
+        violation = true;
+        note = `visit ${node.val}: prev(${prev.val}) > curr(${node.val}) → violation! first=${first.val}, second=${second.val}.`;
+      }
+      steps.push({ tree: cloneTree(root), visiting: node.id, violation,
+        firstId: first ? first.id : null, secondId: second ? second.id : null,
+        note, line: violation ? 8 : 6, pyLine: violation ? 9 : 7 });
+      prev = node;
+      inorder(node.right);
+    }
+    inorder(root);
+    const tmp = first.val; first.val = second.val; second.val = tmp;
+    steps.push({ tree: cloneTree(root), visiting: null, final: true, firstId: first.id, secondId: second.id,
+      note: 'Swap the two violating nodes\' values → BST recovered.', line: 14, pyLine: 13 });
+    return steps;
+  }
+
+  function renderRecoverTree() {
+    return (stage, step) => {
+      const levels = treeLevels(step.tree);
+      stage.innerHTML = renderTree(levels, n => {
+        if (step.final) return (n.id === step.firstId || n.id === step.secondId) ? 'match' : 'dim';
+        if (n.id === step.visiting) return step.violation ? 'dup' : 'cur';
+        if (n.id === step.firstId || n.id === step.secondId) return 'seen';
+        return '';
+      });
+    };
+  }
+
+  // ── Attach everything once the elements exist in the DOM ────────────────
+  mountVisualizer('viz-bst-p1', traceIsValidBST(buildTree([5, 1, 4, null, null, 3, 6])), withCode('bst-p1', renderIsValidBST(buildTree([5, 1, 4, null, null, 3, 6]))));
+
+  const p2Tree = buildTree([3, 1, 4, null, 2]);
+  mountVisualizer('viz-bst-p2', traceKthSmallest(p2Tree, 1), withCode('bst-p2', renderKthSmallest(p2Tree)));
+
+  mountVisualizer('viz-bst-p3', traceInsertBST(buildTree([5, 3, 8, 1, 4, 7, 9]), 6), withCode('bst-p3', renderInsertBST()));
+
+  const p4Tree = buildTree([6, 2, 8, 0, 4, 7, 9, null, null, 3, 5]);
+  mountVisualizer('viz-bst-p4', traceLCABST(p4Tree, 2, 4), withCode('bst-p4', renderLCABST(p4Tree)));
+
+  mountVisualizer('viz-bst-p5', traceRecoverTree(buildTree([1, 3, null, null, 2])), withCode('bst-p5', renderRecoverTree()));
+}

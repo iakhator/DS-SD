@@ -1,5 +1,7 @@
 // Section: binarysearch
 // Auto-extracted from index.html
+import { autoWrapCodeLines, cellsRow, chips, withCode, mountVisualizer } from '../components/viz-kit.js';
+
 const _html_binarysearch = String.raw`
 <div id="sec-binarysearch" class="section">
 <div class="sec-header"><div class="sec-meta"><span class="sec-badge dsa">Search · 09</span></div><div class="sec-title">Binary Search</div></div>
@@ -107,6 +109,7 @@ bisect.insort_left(arr, val)      <span class="py-cmt"># insert maintaining sort
         <span class="py-kw">else</span>: hi = m-<span class="py-num">1</span>
     <span class="py-kw">return</span> -<span class="py-num">1</span></pre></div>
 </div>
+<algo-visualizer id="viz-bs-p1" title="Standard Binary Search — trace"></algo-visualizer>
 </problem-card>
 
 <problem-card num="P2" title="Search in Rotated Sorted Array" difficulty="medium" tags="Modified BS">
@@ -146,6 +149,7 @@ bisect.insort_left(arr, val)      <span class="py-cmt"># insert maintaining sort
             <span class="py-kw">else</span>: hi = mid-<span class="py-num">1</span>
     <span class="py-kw">return</span> -<span class="py-num">1</span></pre></div>
 </div>
+<algo-visualizer id="viz-bs-p2" title="Rotated Binary Search — trace"></algo-visualizer>
 </problem-card>
 
 <problem-card num="P3" title="Find Minimum in Rotated Array" difficulty="medium" tags="Modified BS">
@@ -171,6 +175,7 @@ bisect.insort_left(arr, val)      <span class="py-cmt"># insert maintaining sort
         <span class="py-kw">else</span>: hi = mid
     <span class="py-kw">return</span> nums[lo]</pre></div>
 </div>
+<algo-visualizer id="viz-bs-p3" title="Find Pivot — trace"></algo-visualizer>
 </problem-card>
 
 <problem-card num="P4" title="Koko Eating Bananas (Answer Space BS)" difficulty="medium" tags="BS on Answer">
@@ -202,6 +207,7 @@ bisect.insort_left(arr, val)      <span class="py-cmt"># insert maintaining sort
         <span class="py-kw">else</span>: lo = mid+<span class="py-num">1</span>
     <span class="py-kw">return</span> lo</pre></div>
 </div>
+<algo-visualizer id="viz-bs-p4" title="Binary Search on Answer — trace"></algo-visualizer>
 </problem-card>
 
 <problem-card num="P5" title="Median of Two Sorted Arrays" difficulty="hard" tags="Binary Search,Partition">
@@ -241,16 +247,185 @@ bisect.insort_left(arr, val)      <span class="py-cmt"># insert maintaining sort
         <span class="py-kw">elif</span> bl > ar: lo = i+<span class="py-num">1</span>
         <span class="py-kw">else</span>: <span class="py-kw">return</span> <span class="py-fn">min</span>(ar,br) <span class="py-kw">if</span> (m+n)%<span class="py-num">2</span> <span class="py-kw">else</span> (<span class="py-fn">max</span>(al,bl)+<span class="py-fn">min</span>(ar,br))/<span class="py-num">2</span></pre></div>
 </div>
+<algo-visualizer id="viz-bs-p5" title="Partition Binary Search — trace"></algo-visualizer>
 </problem-card>
 </div></div></div>
 `;
 
 (function() {
   const main = document.getElementById('main');
+  let section;
   if (main) {
     const wrapper = document.createElement('div');
     wrapper.innerHTML = _html_binarysearch.trim();
-    const section = wrapper.firstElementChild;
+    section = wrapper.firstElementChild;
     if (section) main.appendChild(section);
   }
+  if (section) autoWrapCodeLines(section);
+  wireVisualizers();
 })();
+
+// ── Visualizer wiring — traces + renderers for the Binary Search problems ───
+function wireVisualizers() {
+  const rangeRow = (nums, lo, hi, mid, dimFinal) => cellsRow(nums,
+    (v, i) => dimFinal ? (i === mid ? 'match' : 'dim') : (i === mid ? 'cur' : (i < lo || i > hi ? 'dim' : 'seen')),
+    (v, i) => i === lo ? 'lo' : i === hi ? 'hi' : i === mid ? 'mid' : '');
+
+  // ── P1: Binary Search (basic) ────────────────────────────────────────────
+  function traceBinarySearch(nums, target) {
+    let lo = 0, hi = nums.length - 1;
+    const steps = [{ lo, hi, mid: null, note: `Start — lo=0, hi=${hi}.`, line: 3, pyLine: 2 }];
+    while (lo <= hi) {
+      const mid = (lo + hi) >>> 1;
+      if (nums[mid] === target) {
+        steps.push({ lo, hi, mid, found: true, final: true, stop: true, note: `mid=${mid} (${nums[mid]}) === target → found!`, line: 3, pyLine: 5 });
+        return steps;
+      } else if (nums[mid] < target) {
+        lo = mid + 1;
+        steps.push({ lo, hi, mid, note: `mid=${mid} (${nums[mid]}) < target → search right half.`, line: 3, pyLine: 6 });
+      } else {
+        hi = mid - 1;
+        steps.push({ lo, hi, mid, note: `mid=${mid} (${nums[mid]}) > target → search left half.`, line: 3, pyLine: 7 });
+      }
+    }
+    steps.push({ lo, hi, mid: null, final: true, note: 'lo > hi — not found → -1.', line: 4, pyLine: 8 });
+    return steps;
+  }
+
+  function renderBinarySearch(nums) {
+    return (stage, step) => { stage.innerHTML = rangeRow(nums, step.lo, step.hi, step.mid, step.final); };
+  }
+
+  // ── P2: Search in Rotated Sorted Array ───────────────────────────────────
+  function traceSearchRotated(nums, target) {
+    let lo = 0, hi = nums.length - 1;
+    const steps = [{ lo, hi, mid: null, note: `Start — lo=0, hi=${hi}.`, line: 2, pyLine: 2 }];
+    while (lo <= hi) {
+      const mid = (lo + hi) >>> 1;
+      if (nums[mid] === target) {
+        steps.push({ lo, hi, mid, found: true, final: true, stop: true, note: `mid=${mid} (${nums[mid]}) === target → found!`, line: 5, pyLine: 5 });
+        return steps;
+      }
+      let note, line, pyLine;
+      if (nums[lo] <= nums[mid]) {
+        if (nums[lo] <= target && target < nums[mid]) { hi = mid - 1; note = `left half [${lo}..${mid}] is sorted, target in range → hi=${hi}.`; line = 7; pyLine = 7; }
+        else { lo = mid + 1; note = `left half is sorted, target not in range → lo=${lo}.`; line = 8; pyLine = 8; }
+      } else {
+        if (nums[mid] < target && target <= nums[hi]) { lo = mid + 1; note = `right half [${mid}..${hi}] is sorted, target in range → lo=${lo}.`; line = 10; pyLine = 10; }
+        else { hi = mid - 1; note = `right half is sorted, target not in range → hi=${hi}.`; line = 11; pyLine = 11; }
+      }
+      steps.push({ lo, hi, mid, note, line, pyLine });
+    }
+    steps.push({ lo, hi, mid: null, final: true, note: 'lo > hi — not found → -1.', line: 14, pyLine: 12 });
+    return steps;
+  }
+
+  function renderSearchRotated(nums) {
+    return (stage, step) => { stage.innerHTML = rangeRow(nums, step.lo, step.hi, step.mid, step.final); };
+  }
+
+  // ── P3: Find Minimum in Rotated Array ────────────────────────────────────
+  function traceFindMin(nums) {
+    let lo = 0, hi = nums.length - 1;
+    const steps = [{ lo, hi, mid: null, note: `Start — lo=0, hi=${hi}.`, line: 2, pyLine: 2 }];
+    while (lo < hi) {
+      const mid = (lo + hi) >>> 1;
+      if (nums[mid] > nums[hi]) {
+        lo = mid + 1;
+        steps.push({ lo, hi, mid, note: `mid=${mid} (${nums[mid]}) > nums[hi]=${nums[hi]} → min is in right half → lo=${lo}.`, line: 5, pyLine: 5 });
+      } else {
+        hi = mid;
+        steps.push({ lo, hi, mid, note: `mid=${mid} (${nums[mid]}) ≤ nums[hi] → min is mid or left → hi=${hi}.`, line: 6, pyLine: 6 });
+      }
+    }
+    steps.push({ lo, hi, mid: lo, final: true, note: `Done. lo===hi=${lo} → min = ${nums[lo]}.`, line: 8, pyLine: 7 });
+    return steps;
+  }
+
+  function renderFindMin(nums) {
+    return (stage, step) => { stage.innerHTML = rangeRow(nums, step.lo, step.hi, step.mid, step.final); };
+  }
+
+  // ── P4: Koko Eating Bananas — binary search on the answer space ─────────
+  function traceMinEatingSpeed(piles, h) {
+    let lo = 1, hi = Math.max(...piles);
+    const steps = [{ lo, hi, mid: null, note: `Start — lo=1, hi=${hi} (max pile).`, line: 3, pyLine: 5 }];
+    while (lo < hi) {
+      const mid = (lo + hi) >>> 1;
+      const hours = piles.reduce((hr, p) => hr + Math.ceil(p / mid), 0);
+      const feasible = hours <= h;
+      if (feasible) hi = mid; else lo = mid + 1;
+      steps.push({ lo, hi, mid, hours, note: `k=${mid}: needs ${hours}h (limit ${h}) → ${feasible ? 'feasible, try smaller k' : 'too slow, need bigger k'} → range=[${lo},${hi}].`,
+        line: 6, pyLine: feasible ? 8 : 9 });
+    }
+    steps.push({ lo, hi, mid: lo, final: true, note: `Done. Minimum k = ${lo}.`, line: 8, pyLine: 10 });
+    return steps;
+  }
+
+  function renderMinEatingSpeed(piles) {
+    return (stage, step) => {
+      stage.innerHTML = `
+        <div class="viz-panel-lbl">piles</div>
+        ${chips(piles)}
+        <div class="viz-panels" style="margin-top:8px">
+          <div class="viz-panel"><div class="viz-panel-lbl">search range [lo, hi]</div><div class="viz-counter" style="font-size:20px">[${step.lo}, ${step.hi}]</div></div>
+          ${step.mid !== null && !step.final ? `<div class="viz-panel"><div class="viz-panel-lbl">trying k</div><div class="viz-counter" style="font-size:20px">${step.mid}</div></div>` : ''}
+          ${step.final ? `<div class="viz-panel"><div class="viz-counter">${step.lo}<span class="viz-counter-label">min speed k</span></div></div>` : ''}
+        </div>`;
+    };
+  }
+
+  // ── P5: Median of Two Sorted Arrays — partition binary search ───────────
+  function traceMedianTwoSorted(nums1, nums2) {
+    let A = nums1, B = nums2, swapped = false;
+    if (A.length > B.length) { [A, B] = [B, A]; swapped = true; }
+    const m = A.length, n = B.length, half = Math.floor((m + n) / 2);
+    let lo = 0, hi = m;
+    const steps = [{ lo, hi, i: null, j: null, A, B,
+      note: `${swapped ? 'Swapped so A is the shorter array. ' : ''}A=[${A.join(',')}], B=[${B.join(',')}]. Partition size = ${half}.`, line: 4, pyLine: 4 }];
+    while (lo <= hi) {
+      const i = Math.floor((lo + hi) / 2), j = half - i;
+      const al = i ? A[i - 1] : -Infinity, ar = i < m ? A[i] : Infinity;
+      const bl = j ? B[j - 1] : -Infinity, br = j < n ? B[j] : Infinity;
+      if (al > br) {
+        hi = i - 1;
+        steps.push({ lo, hi, i, j, A, B, note: `i=${i}, j=${j}: A's left (${al}) > B's right (${br}) → partition too far right in A → hi=${hi}.`, line: 9, pyLine: 9 });
+      } else if (bl > ar) {
+        lo = i + 1;
+        steps.push({ lo, hi, i, j, A, B, note: `i=${i}, j=${j}: B's left (${bl}) > A's right (${ar}) → partition too far left in A → lo=${lo}.`, line: 10, pyLine: 10 });
+      } else {
+        const maxL = Math.max(al, bl), minR = Math.min(ar, br);
+        const result = (m + n) % 2 ? minR : (maxL + minR) / 2;
+        steps.push({ lo, hi, i, j, A, B, final: true, stop: true, result,
+          note: `i=${i}, j=${j}: valid partition! maxLeft=${maxL}, minRight=${minR} → median = ${result}.`, line: 13, pyLine: 11 });
+        return steps;
+      }
+    }
+    return steps;
+  }
+
+  function renderMedianTwoSorted() {
+    return (stage, step) => {
+      stage.innerHTML = `
+        <div class="viz-panel-lbl">A (partition at i=${step.i ?? '—'})</div>
+        ${cellsRow(step.A, (v, idx) => step.i !== null && idx < step.i ? 'seen' : (step.i !== null && idx === step.i ? 'cur' : ''))}
+        <div class="viz-panel-lbl" style="margin-top:8px">B (partition at j=${step.j ?? '—'})</div>
+        ${cellsRow(step.B, (v, idx) => step.j !== null && idx < step.j ? 'seen' : (step.j !== null && idx === step.j ? 'cur2' : ''))}
+        ${step.result !== undefined ? `<div class="viz-panels" style="margin-top:8px"><div class="viz-panel"><div class="viz-counter">${step.result}<span class="viz-counter-label">median</span></div></div></div>` : ''}`;
+    };
+  }
+
+  // ── Attach everything once the elements exist in the DOM ────────────────
+  const p1Nums = [-1, 0, 3, 5, 9, 12], p1Target = 9;
+  mountVisualizer('viz-bs-p1', traceBinarySearch(p1Nums, p1Target), withCode('bs-p1', renderBinarySearch(p1Nums)));
+
+  const p2Nums = [4, 5, 6, 7, 0, 1, 2], p2Target = 0;
+  mountVisualizer('viz-bs-p2', traceSearchRotated(p2Nums, p2Target), withCode('bs-p2', renderSearchRotated(p2Nums)));
+
+  mountVisualizer('viz-bs-p3', traceFindMin([3, 4, 5, 1, 2]), withCode('bs-p3', renderFindMin([3, 4, 5, 1, 2])));
+
+  const p4Piles = [3, 6, 7, 11], p4H = 8;
+  mountVisualizer('viz-bs-p4', traceMinEatingSpeed(p4Piles, p4H), withCode('bs-p4', renderMinEatingSpeed(p4Piles)));
+
+  mountVisualizer('viz-bs-p5', traceMedianTwoSorted([1, 3], [2]), withCode('bs-p5', renderMedianTwoSorted()));
+}

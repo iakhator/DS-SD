@@ -1,5 +1,7 @@
 // Section: prefixsum
 // Prefix Sum pattern — added to complete the 8 core patterns.
+import { autoWrapCodeLines, cellsRow, chips, withCode, mountVisualizer, renderGrid } from '../components/viz-kit.js';
+
 const _html_prefixsum = String.raw`
 <div id="sec-prefixsum" class="section">
 <div class="sec-header"><div class="sec-meta"><span class="sec-badge dsa">Patterns · 24</span></div><div class="sec-title">Prefix Sum</div></div>
@@ -129,6 +131,7 @@ sum of arr[2..5]  (the 4,1,5,9)
     <span class="py-kw">def</span> <span class="py-fn">sumRange</span>(self, l, r):
         <span class="py-kw">return</span> self.prefix[r + <span class="py-num">1</span>] - self.prefix[l]</pre></div>
 </div>
+<algo-visualizer id="viz-ps-p1" title="Build Once, Query Forever — trace"></algo-visualizer>
 </problem-card>
 
 <problem-card num="P2" title="Find Pivot Index" difficulty="easy" tags="Prefix Sum,Running Total">
@@ -158,6 +161,7 @@ sum of arr[2..5]  (the 4,1,5,9)
         left += x
     <span class="py-kw">return</span> -<span class="py-num">1</span></pre></div>
 </div>
+<algo-visualizer id="viz-ps-p2" title="Running Left Sum — trace"></algo-visualizer>
 </problem-card>
 
 <problem-card num="P3" title="Subarray Sum Equals K" difficulty="medium" tags="Prefix Sum,HashMap">
@@ -191,6 +195,7 @@ sum of arr[2..5]  (the 4,1,5,9)
         seen[s] += <span class="py-num">1</span>
     <span class="py-kw">return</span> count</pre></div>
 </div>
+<algo-visualizer id="viz-ps-p3" title="Prefix Sum + HashMap — trace"></algo-visualizer>
 </problem-card>
 
 <problem-card num="P4" title="Contiguous Array" difficulty="medium" tags="Prefix Sum,Balance Trick">
@@ -225,6 +230,7 @@ sum of arr[2..5]  (the 4,1,5,9)
             first[balance] = i
     <span class="py-kw">return</span> best</pre></div>
 </div>
+<algo-visualizer id="viz-ps-p4" title="Balance + First-Seen Index — trace"></algo-visualizer>
 </problem-card>
 
 <problem-card num="P5" title="Range Sum Query 2D — Immutable" difficulty="hard" tags="2D Prefix Sum,Inclusion-Exclusion">
@@ -264,6 +270,7 @@ sum of arr[2..5]  (the 4,1,5,9)
         <span class="py-kw">return</span> (self.pre[r2+<span class="py-num">1</span>][c2+<span class="py-num">1</span>] - self.pre[r1][c2+<span class="py-num">1</span>]
               - self.pre[r2+<span class="py-num">1</span>][c1] + self.pre[r1][c1])</pre></div>
 </div>
+<algo-visualizer id="viz-ps-p5" title="2D Prefix Grid — trace"></algo-visualizer>
 </problem-card>
 
 </div><!-- end problems-grid -->
@@ -273,10 +280,191 @@ sum of arr[2..5]  (the 4,1,5,9)
 
 (function() {
   const main = document.getElementById('main');
+  let section;
   if (main) {
     const wrapper = document.createElement('div');
     wrapper.innerHTML = _html_prefixsum.trim();
-    const section = wrapper.firstElementChild;
+    section = wrapper.firstElementChild;
     if (section) main.appendChild(section);
   }
+  if (section) autoWrapCodeLines(section);
+  wireVisualizers();
 })();
+
+// ── Visualizer wiring — traces + renderers for the Prefix Sum problems ──────
+function wireVisualizers() {
+  // ── P1: Range Sum Query — Immutable ─────────────────────────────────────
+  function traceRangeSumImmutable(nums, queries) {
+    const prefix = [0];
+    const steps = [{ phase: 'build', i: -1, prefix: [...prefix], note: 'Start — prefix=[0].', line: 3, pyLine: 3 }];
+    nums.forEach((n, i) => {
+      prefix.push(prefix.at(-1) + n);
+      steps.push({ phase: 'build', i, prefix: [...prefix], note: `prefix[${i + 1}] = prefix[${i}] + nums[${i}](${n}) = ${prefix.at(-1)}.`, line: 5, pyLine: 5 });
+    });
+    for (const [l, r] of queries) {
+      const result = prefix[r + 1] - prefix[l];
+      steps.push({ phase: 'query', l, r, prefix: [...prefix], result,
+        note: `sumRange(${l},${r}) = prefix[${r + 1}] − prefix[${l}] = ${prefix[r + 1]} − ${prefix[l]} = ${result}.`, line: 8, pyLine: 7 });
+    }
+    steps[steps.length - 1].final = true;
+    return steps;
+  }
+
+  function renderRangeSumImmutable(nums) {
+    return (stage, step) => {
+      stage.innerHTML = `
+        <div class="viz-panel-lbl">nums</div>
+        ${cellsRow(nums, (v, i) => step.phase === 'build' && i === step.i ? 'cur' : '')}
+        <div class="viz-panel-lbl" style="margin-top:10px">prefix (length n+1)</div>
+        ${cellsRow(step.prefix, (v, i) => step.phase === 'query' ? (i === step.l || i === step.r + 1 ? 'match' : '') : (i === step.i + 1 ? 'cur' : ''))}
+        ${step.phase === 'query' ? `<div class="viz-panels" style="margin-top:8px"><div class="viz-panel"><div class="viz-panel-lbl">sumRange(${step.l},${step.r})</div><div class="viz-counter" style="font-size:20px">${step.result}</div></div></div>` : ''}`;
+    };
+  }
+
+  // ── P2: Find Pivot Index — running left sum ─────────────────────────────
+  function tracePivotIndex(nums) {
+    const total = nums.reduce((a, b) => a + b, 0);
+    let leftSum = 0;
+    const steps = [{ i: -1, leftSum, rightSum: total, note: `Start — total=${total}.`, line: 3, pyLine: 3 }];
+    for (let i = 0; i < nums.length; i++) {
+      const rightSum = total - leftSum - nums[i];
+      if (leftSum === rightSum) {
+        steps.push({ i, leftSum, rightSum, found: true, final: true, stop: true, note: `i=${i}: left=${leftSum} == right=${rightSum} → pivot found!`, line: 5, pyLine: 6 });
+        return steps;
+      }
+      steps.push({ i, leftSum, rightSum, note: `i=${i}: left=${leftSum}, right=${rightSum} — not equal, advance.`, line: 6, pyLine: 7 });
+      leftSum += nums[i];
+    }
+    steps.push({ i: -1, leftSum, rightSum: null, final: true, note: 'No pivot found → -1.', line: 8, pyLine: 8 });
+    return steps;
+  }
+
+  function renderPivotIndex(nums) {
+    return (stage, step) => {
+      stage.innerHTML = `
+        ${cellsRow(nums, (v, i) => step.found && i === step.i ? 'match' : (step.i >= 0 && i < step.i ? 'seen' : (i === step.i ? 'cur' : '')))}
+        <div class="viz-panels">
+          <div class="viz-panel"><div class="viz-panel-lbl">left sum</div><div class="viz-counter" style="font-size:20px">${step.leftSum}</div></div>
+          <div class="viz-panel"><div class="viz-panel-lbl">right sum</div><div class="viz-counter" style="font-size:20px">${step.rightSum ?? '—'}</div></div>
+        </div>`;
+    };
+  }
+
+  // ── P3: Subarray Sum Equals K — prefix sum hashmap ──────────────────────
+  function traceSubarraySumPS(nums, k) {
+    const seen = new Map([[0, 1]]);
+    let sum = 0, count = 0;
+    const steps = [{ i: -1, sum, count, map: Object.fromEntries(seen), note: 'Start — seen = {0:1}.', line: 3, pyLine: 5 }];
+    nums.forEach((n, i) => {
+      sum += n;
+      const found = seen.get(sum - k) ?? 0;
+      count += found;
+      steps.push({ i, sum, count, map: Object.fromEntries(seen), note: `i=${i}: sum=${sum}. need ${sum}-${k}=${sum - k} → seen ${found}× → count=${count}.`, line: 6, pyLine: 8 });
+      seen.set(sum, (seen.get(sum) ?? 0) + 1);
+      steps.push({ i, sum, count, map: Object.fromEntries(seen), note: `record prefix sum ${sum}.`, line: 7, pyLine: 9 });
+    });
+    steps[steps.length - 1].final = true;
+    return steps;
+  }
+
+  function renderSubarraySumPS(nums) {
+    return (stage, step) => {
+      const mapChips = Object.entries(step.map).map(([k, v]) => `${k}:${v}`);
+      stage.innerHTML = `
+        ${cellsRow(nums, (v, i) => step.final ? 'dim' : (i === step.i ? 'cur' : (step.i >= 0 && i < step.i ? 'dim' : '')))}
+        <div class="viz-panels">
+          <div class="viz-panel"><div class="viz-panel-lbl">running sum</div><div class="viz-counter" style="font-size:20px">${step.sum}</div></div>
+          <div class="viz-panel"><div class="viz-counter">${step.count}<span class="viz-counter-label">subarrays found</span></div></div>
+          <div class="viz-panel"><div class="viz-panel-lbl">seen (prefix:count)</div>${chips(mapChips)}</div>
+        </div>`;
+    };
+  }
+
+  // ── P4: Contiguous Array — balance + first-seen index ───────────────────
+  function traceFindMaxLength(nums) {
+    const firstSeen = new Map([[0, -1]]);
+    let balance = 0, best = 0;
+    const steps = [{ i: -1, balance, best, map: Object.fromEntries(firstSeen), note: 'Start — firstSeen={0:-1}.', line: 3, pyLine: 3 }];
+    for (let i = 0; i < nums.length; i++) {
+      balance += nums[i] === 1 ? 1 : -1;
+      if (firstSeen.has(balance)) {
+        best = Math.max(best, i - firstSeen.get(balance));
+        steps.push({ i, balance, best, map: Object.fromEntries(firstSeen), matched: true,
+          note: `i=${i} (val=${nums[i]}): balance=${balance}, seen before at index ${firstSeen.get(balance)} → length ${i - firstSeen.get(balance)} → best=${best}.`, line: 7, pyLine: 7 });
+      } else {
+        firstSeen.set(balance, i);
+        steps.push({ i, balance, best, map: Object.fromEntries(firstSeen), matched: false,
+          note: `i=${i} (val=${nums[i]}): balance=${balance} is new → record first-seen index ${i}.`, line: 9, pyLine: 9 });
+      }
+    }
+    steps[steps.length - 1].final = true;
+    return steps;
+  }
+
+  function renderFindMaxLength(nums) {
+    return (stage, step) => {
+      const mapChips = Object.entries(step.map).map(([k, v]) => `${k}:${v}`);
+      stage.innerHTML = `
+        ${cellsRow(nums, (v, i) => step.final ? 'dim' : (i === step.i ? (step.matched ? 'match' : 'cur') : (step.i >= 0 && i < step.i ? 'dim' : '')))}
+        <div class="viz-panels">
+          <div class="viz-panel"><div class="viz-panel-lbl">balance</div><div class="viz-counter" style="font-size:20px">${step.balance}</div></div>
+          <div class="viz-panel"><div class="viz-counter">${step.best}<span class="viz-counter-label">longest so far</span></div></div>
+          <div class="viz-panel"><div class="viz-panel-lbl">firstSeen</div>${chips(mapChips)}</div>
+        </div>`;
+    };
+  }
+
+  // ── P5: Range Sum Query 2D — 2D prefix grid ─────────────────────────────
+  function traceRangeSum2D(matrix, query) {
+    const m = matrix.length, n = matrix[0].length;
+    const pre = Array.from({ length: m + 1 }, () => new Array(n + 1).fill(0));
+    const steps = [{ phase: 'build', r: -1, c: -1, pre: pre.map(row => [...row]), note: 'Start — pre grid all 0.', line: 4, pyLine: 4 }];
+    for (let r = 0; r < m; r++) {
+      for (let c = 0; c < n; c++) {
+        pre[r + 1][c + 1] = matrix[r][c] + pre[r][c + 1] + pre[r + 1][c] - pre[r][c];
+        steps.push({ phase: 'build', r, c, pre: pre.map(row => [...row]),
+          note: `pre[${r + 1}][${c + 1}] = matrix[${r}][${c}](${matrix[r][c]}) + pre[${r}][${c + 1}] + pre[${r + 1}][${c}] − pre[${r}][${c}] = ${pre[r + 1][c + 1]}.`,
+          line: 8, pyLine: 7 });
+      }
+    }
+    const [r1, c1, r2, c2] = query;
+    const result = pre[r2 + 1][c2 + 1] - pre[r1][c2 + 1] - pre[r2 + 1][c1] + pre[r1][c1];
+    steps.push({ phase: 'query', r1, c1, r2, c2, pre: pre.map(row => [...row]), result, final: true,
+      note: `sumRegion(${r1},${c1},${r2},${c2}) = ${pre[r2 + 1][c2 + 1]} − ${pre[r1][c2 + 1]} − ${pre[r2 + 1][c1]} + ${pre[r1][c1]} = ${result}.`,
+      line: 12, pyLine: 11 });
+    return steps;
+  }
+
+  function renderRangeSum2D(matrix) {
+    return (stage, step) => {
+      const preHighlight = step.phase === 'build'
+        ? (v, ri, ci) => (ri === step.r + 1 && ci === step.c + 1) ? 'cur' : ''
+        : (v, ri, ci) => {
+            if (ri === step.r2 + 1 && ci === step.c2 + 1) return 'match';
+            if (ri === step.r1 && ci === step.c2 + 1) return 'dup';
+            if (ri === step.r2 + 1 && ci === step.c1) return 'dup';
+            if (ri === step.r1 && ci === step.c1) return 'seen';
+            return '';
+          };
+      stage.innerHTML = `
+        <div class="viz-panel-lbl">matrix</div>
+        ${renderGrid(matrix, (v, ri, ci) => step.phase === 'build' && ri === step.r && ci === step.c ? 'cur2' : '')}
+        <div class="viz-panel-lbl" style="margin-top:12px">pre (inclusion–exclusion prefix grid)</div>
+        ${renderGrid(step.pre, preHighlight)}
+        ${step.phase === 'query' ? `<div class="viz-panels" style="margin-top:10px"><div class="viz-panel"><div class="viz-counter">${step.result}<span class="viz-counter-label">sumRegion result</span></div></div></div>` : ''}`;
+    };
+  }
+
+  // ── Attach everything once the elements exist in the DOM ────────────────
+  const p1Nums = [-2, 0, 3, -5, 2, -1];
+  mountVisualizer('viz-ps-p1', traceRangeSumImmutable(p1Nums, [[0, 2], [2, 5]]), withCode('ps-p1', renderRangeSumImmutable(p1Nums)));
+
+  mountVisualizer('viz-ps-p2', tracePivotIndex([1, 7, 3, 6, 5, 6]), withCode('ps-p2', renderPivotIndex([1, 7, 3, 6, 5, 6])));
+
+  mountVisualizer('viz-ps-p3', traceSubarraySumPS([1, 1, 1], 2), withCode('ps-p3', renderSubarraySumPS([1, 1, 1])));
+
+  mountVisualizer('viz-ps-p4', traceFindMaxLength([0, 1, 0]), withCode('ps-p4', renderFindMaxLength([0, 1, 0])));
+
+  const p5Matrix = [[3, 0, 1, 4], [5, 6, 3, 2], [1, 2, 0, 1]];
+  mountVisualizer('viz-ps-p5', traceRangeSum2D(p5Matrix, [1, 1, 2, 2]), withCode('ps-p5', renderRangeSum2D(p5Matrix)));
+}

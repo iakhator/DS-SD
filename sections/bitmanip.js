@@ -1,5 +1,7 @@
 // Section: bitmanip
 // Auto-extracted from index.html
+import { autoWrapCodeLines, cellsRow, withCode, mountVisualizer } from '../components/viz-kit.js';
+
 const _html_bitmanip = String.raw`
 <div id="sec-bitmanip" class="section">
 <div class="sec-header"><div class="sec-meta"><span class="sec-badge dsa">Advanced · 22</span></div><div class="sec-title">Bit Manipulation</div></div>
@@ -63,15 +65,47 @@ Key tricks:
 <span class="py-cmt"># Python: bin(n).count('1') for popcount</span>
 <span class="py-fn">bin</span>(<span class="py-num">255</span>).count(<span class="py-str">'1'</span>)  <span class="py-cmt"># → 8</span>
 n.bit_count()           <span class="py-cmt"># Python 3.10+ built-in popcount</span></pre></div></div>
+<algo-visualizer id="viz-bit-demo" title="Brian Kernighan's Bit Count — trace"></algo-visualizer>
 </div></div>
 `;
 
 (function() {
   const main = document.getElementById('main');
+  let section;
   if (main) {
     const wrapper = document.createElement('div');
     wrapper.innerHTML = _html_bitmanip.trim();
-    const section = wrapper.firstElementChild;
+    section = wrapper.firstElementChild;
     if (section) main.appendChild(section);
   }
+  if (section) autoWrapCodeLines(section);
+  wireVisualizers();
 })();
+
+// ── Visualizer wiring — Brian Kernighan's bit-count demo trace ──────────────
+function wireVisualizers() {
+  function traceCountBits(n0) {
+    let n = n0, c = 0;
+    const width = n0.toString(2).length;
+    const steps = [{ n, width, c, note: `Start — n=${n0} (binary ${n.toString(2)}).`, line: 5, pyLine: 7 }];
+    while (n) {
+      const before = n.toString(2);
+      n = n & (n - 1);
+      c++;
+      steps.push({ n, width, c, note: `n &= n-1: ${before} → ${n.toString(2).padStart(width, '0')}. Cleared lowest set bit → count=${c}.`, line: 5, pyLine: 8 });
+    }
+    steps[steps.length - 1].final = true;
+    return steps;
+  }
+
+  function renderCountBits() {
+    return (stage, step) => {
+      const bits = step.n.toString(2).padStart(step.width, '0').split('');
+      stage.innerHTML = `
+        ${cellsRow(bits, () => '')}
+        <div class="viz-panels" style="margin-top:8px"><div class="viz-panel"><div class="viz-counter">${step.c}<span class="viz-counter-label">set bits found</span></div></div></div>`;
+    };
+  }
+
+  mountVisualizer('viz-bit-demo', traceCountBits(44), withCode('bit-impl', renderCountBits()));
+}

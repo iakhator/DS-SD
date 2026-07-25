@@ -1,5 +1,7 @@
 // Section: sorting
 // Auto-extracted from index.html
+import { autoWrapCodeLines, cellsRow, withCode, mountVisualizer } from '../components/viz-kit.js';
+
 const _html_sorting = String.raw`
 <div id="sec-sorting" class="section">
 <div class="sec-header"><div class="sec-meta"><span class="sec-badge dsa">Advanced · 21</span></div><div class="sec-title">Sorting Algorithms</div></div>
@@ -68,15 +70,56 @@ const _html_sorting = String.raw`
 arr.sort()          <span class="py-cmt"># in-place</span>
 sorted_arr = sorted(arr)  <span class="py-cmt"># new list</span>
 arr.sort(key=<span class="py-kw">lambda</span> x: x[<span class="py-num">1</span>])  <span class="py-cmt"># custom key</span></pre></div></div>
+<algo-visualizer id="viz-sort-demo" title="Quicksort (Lomuto Partition) — trace"></algo-visualizer>
 </div></div>
 `;
 
 (function() {
   const main = document.getElementById('main');
+  let section;
   if (main) {
     const wrapper = document.createElement('div');
     wrapper.innerHTML = _html_sorting.trim();
-    const section = wrapper.firstElementChild;
+    section = wrapper.firstElementChild;
     if (section) main.appendChild(section);
   }
+  if (section) autoWrapCodeLines(section);
+  wireVisualizers();
 })();
+
+// ── Visualizer wiring — quicksort (Lomuto partition) demo trace ─────────────
+// The Python panel just shows built-in sort() usage (a different "algorithm"
+// entirely), so pyLine stays null — there's no equivalent line to highlight.
+function wireVisualizers() {
+  function traceQuickSort(input) {
+    const arr = [...input];
+    const steps = [{ arr: [...arr], pivotIdx: null, note: 'Start — unsorted array.', line: 15, pyLine: null }];
+    function partition(lo, hi) {
+      const pivot = arr[hi];
+      let i = lo - 1;
+      for (let j = lo; j < hi; j++) {
+        if (arr[j] <= pivot) { i++; [arr[i], arr[j]] = [arr[j], arr[i]]; }
+      }
+      [arr[i + 1], arr[hi]] = [arr[hi], arr[i + 1]];
+      steps.push({ arr: [...arr], pivotIdx: i + 1, note: `partition around pivot ${pivot} → lands at index ${i + 1} (left ≤ pivot ≤ right).`, line: 26, pyLine: null });
+      return i + 1;
+    }
+    function quickSort(lo, hi) {
+      if (lo >= hi) return;
+      const p = partition(lo, hi);
+      quickSort(lo, p - 1);
+      quickSort(p + 1, hi);
+    }
+    quickSort(0, arr.length - 1);
+    steps.push({ arr: [...arr], pivotIdx: null, final: true, note: 'Done. Array is sorted.', line: 16, pyLine: null });
+    return steps;
+  }
+
+  function renderQuickSort() {
+    return (stage, step) => {
+      stage.innerHTML = cellsRow(step.arr, (v, idx) => step.final ? 'match' : (idx === step.pivotIdx ? 'match' : ''));
+    };
+  }
+
+  mountVisualizer('viz-sort-demo', traceQuickSort([8, 3, 5, 1, 9, 2, 7]), withCode('sort-impl', renderQuickSort()));
+}

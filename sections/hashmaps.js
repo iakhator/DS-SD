@@ -1,5 +1,7 @@
 // Section: hashmaps
 // Auto-extracted from index.html
+import { autoWrapCodeLines, cellsRow, chips, withCode, mountVisualizer } from '../components/viz-kit.js';
+
 const _html_hashmaps = String.raw`
 <div id="sec-hashmaps" class="section">
 <div class="sec-header"><div class="sec-meta"><span class="sec-badge dsa">Foundation · 03</span></div><div class="sec-title">Hash Maps & Sets</div></div>
@@ -108,6 +110,7 @@ dd[<span class="py-str">'a'</span>] += <span class="py-num">1</span>            
 <span class="py-kw">def</span> <span class="py-fn">is_anagram</span>(s, t):
     <span class="py-kw">return</span> Counter(s) == Counter(t)</pre></div>
 </div>
+<algo-visualizer id="viz-hash-p1" title="Frequency Map — trace"></algo-visualizer>
 </problem-card>
 
 <problem-card num="P2" title="Top K Frequent Elements" difficulty="medium" tags="HashMap,Bucket Sort">
@@ -135,6 +138,7 @@ dd[<span class="py-str">'a'</span>] += <span class="py-num">1</span>            
 <span class="py-kw">def</span> <span class="py-fn">top_k_frequent</span>(nums, k):
     <span class="py-kw">return</span> [x <span class="py-kw">for</span> x, _ <span class="py-kw">in</span> Counter(nums).most_common(k)]</pre></div>
 </div>
+<algo-visualizer id="viz-hash-p2" title="Bucket Sort — trace"></algo-visualizer>
 </problem-card>
 
 <problem-card num="P3" title="Longest Consecutive Sequence" difficulty="medium" tags="HashSet,O(n)">
@@ -167,6 +171,7 @@ dd[<span class="py-str">'a'</span>] += <span class="py-num">1</span>            
             best = <span class="py-fn">max</span>(best, length)
     <span class="py-kw">return</span> best</pre></div>
 </div>
+<algo-visualizer id="viz-hash-p3" title="HashSet Sequence Scan — trace"></algo-visualizer>
 </problem-card>
 
 <problem-card num="P4" title="Subarray Sum Equals K" difficulty="medium" tags="Prefix Sum,HashMap">
@@ -200,6 +205,7 @@ dd[<span class="py-str">'a'</span>] += <span class="py-num">1</span>            
         prefix[s] += <span class="py-num">1</span>
     <span class="py-kw">return</span> total</pre></div>
 </div>
+<algo-visualizer id="viz-hash-p4" title="Prefix Sum HashMap — trace"></algo-visualizer>
 </problem-card>
 
 <problem-card num="P5" title="LRU Cache" difficulty="hard" tags="HashMap,Doubly Linked List">
@@ -263,6 +269,7 @@ dd[<span class="py-str">'a'</span>] += <span class="py-num">1</span>            
         <span class="py-kw">if</span> <span class="py-fn">len</span>(self.cache) > self.cap:
             self.cache.popitem(last=<span class="py-kw">False</span>)  <span class="py-cmt"># evict LRU (first item)</span></pre></div>
 </div>
+<algo-visualizer id="viz-hash-p5" title="Recency Order — trace"></algo-visualizer>
 </problem-card>
 
 </div></div></div>
@@ -270,10 +277,212 @@ dd[<span class="py-str">'a'</span>] += <span class="py-num">1</span>            
 
 (function() {
   const main = document.getElementById('main');
+  let section;
   if (main) {
     const wrapper = document.createElement('div');
     wrapper.innerHTML = _html_hashmaps.trim();
-    const section = wrapper.firstElementChild;
+    section = wrapper.firstElementChild;
     if (section) main.appendChild(section);
   }
+  if (section) autoWrapCodeLines(section);
+  wireVisualizers();
 })();
+
+// ── Visualizer wiring — traces + renderers for the Hash Maps & Sets problems ─
+function wireVisualizers() {
+  // ── P1: Valid Anagram — frequency map ───────────────────────────────────
+  function traceIsAnagram(s, t) {
+    const freq = new Map();
+    const steps = [{ phase: 'build', idx: -1, freq: {}, note: `Start — lengths equal (${s.length}). Build frequency map from s.`, line: 3, pyLine: 3 }];
+    [...s].forEach((c, i) => {
+      freq.set(c, (freq.get(c) ?? 0) + 1);
+      steps.push({ phase: 'build', idx: i, freq: Object.fromEntries(freq), note: `s[${i}]='${c}' → freq['${c}']=${freq.get(c)}.`, line: 4, pyLine: 3 });
+    });
+    for (let i = 0; i < t.length; i++) {
+      const c = t[i];
+      if (!freq.get(c)) {
+        steps.push({ phase: 'check', idx: i, freq: Object.fromEntries(freq), final: true, stop: true, mismatch: true,
+          note: `t[${i}]='${c}': freq['${c}'] is 0 → mismatch → false.`, line: 6, pyLine: 3 });
+        return steps;
+      }
+      freq.set(c, freq.get(c) - 1);
+      steps.push({ phase: 'check', idx: i, freq: Object.fromEntries(freq), note: `t[${i}]='${c}': consume one → freq['${c}']=${freq.get(c)}.`, line: 7, pyLine: 3 });
+    }
+    steps.push({ phase: 'done', idx: -1, freq: Object.fromEntries(freq), final: true, note: 'All characters matched → true.', line: 9, pyLine: 3 });
+    return steps;
+  }
+
+  function renderIsAnagram(s, t) {
+    const sChars = s.split(''), tChars = t.split('');
+    return (stage, step) => {
+      const freqChips = Object.entries(step.freq).map(([k, v]) => `${k}:${v}`);
+      stage.innerHTML = `
+        <div class="viz-panel-lbl">s</div>
+        ${cellsRow(sChars, (v, i) => step.phase === 'build' && i === step.idx ? 'cur' : (step.phase !== 'build' ? 'dim' : ''))}
+        <div class="viz-panel-lbl" style="margin-top:10px">t</div>
+        ${cellsRow(tChars, (v, i) => step.phase === 'check' && i === step.idx ? (step.mismatch ? 'dup' : 'cur2') : (step.phase === 'check' && i < step.idx ? 'dim' : ''))}
+        <div class="viz-panels" style="margin-top:8px">
+          <div class="viz-panel"><div class="viz-panel-lbl">freq map</div>${chips(freqChips)}</div>
+        </div>`;
+    };
+  }
+
+  // ── P2: Top K Frequent Elements — bucket sort ───────────────────────────
+  function traceTopKFrequent(nums, k) {
+    const freq = new Map();
+    for (const n of nums) freq.set(n, (freq.get(n) ?? 0) + 1);
+    const steps = [{ buckets: [], res: [], note: `Built freq map: {${[...freq].map(([a, b]) => `${a}:${b}`).join(', ')}}`, line: 3, pyLine: 3 }];
+    const buckets = Array.from({ length: nums.length + 1 }, () => []);
+    for (const [num, count] of freq) buckets[count].push(num);
+    steps.push({ buckets: buckets.map(b => [...b]), res: [], note: 'Bucket index = frequency (bucket sort).', line: 6, pyLine: 3 });
+    const res = [];
+    for (let i = buckets.length - 1; i >= 1 && res.length < k; i--) {
+      if (buckets[i].length) {
+        res.push(...buckets[i]);
+        steps.push({ i, buckets: buckets.map(b => [...b]), res: [...res], note: `bucket[${i}]=[${buckets[i].join(',')}] → res=[${res.join(',')}].`, line: 9, pyLine: 3 });
+      }
+    }
+    steps.push({ buckets: buckets.map(b => [...b]), res: res.slice(0, k), final: true, note: `Done. Top ${k} = [${res.slice(0, k).join(',')}].`, line: 10, pyLine: 3 });
+    return steps;
+  }
+
+  function renderTopKFrequent() {
+    return (stage, step) => {
+      const bucketRows = step.buckets.map((b, i) =>
+        `<div style="display:flex;align-items:center;gap:8px"><span class="viz-panel-lbl" style="width:60px;margin:0">freq ${i}</span>${chips(b, i === step.i ? ' new' : '')}</div>`
+      ).reverse().join('');
+      stage.innerHTML = `
+        <div class="viz-panel-lbl">buckets (index = frequency)</div>
+        <div style="display:flex;flex-direction:column;gap:5px">${bucketRows}</div>
+        <div class="viz-panels" style="margin-top:10px"><div class="viz-panel"><div class="viz-panel-lbl">result</div>${chips(step.res, ' new')}</div></div>`;
+    };
+  }
+
+  // ── P3: Longest Consecutive Sequence — hashset scan ─────────────────────
+  function traceLongestConsecutive(nums) {
+    const set = new Set(nums);
+    let best = 0;
+    const steps = [{ n: null, best, note: `Start — set = {${[...set].join(',')}}.`, line: 3, pyLine: 2 }];
+    for (const n of set) {
+      if (!set.has(n - 1)) {
+        let curr = n, len = 1;
+        while (set.has(curr + 1)) { curr++; len++; }
+        best = Math.max(best, len);
+        steps.push({ n, curr, seqStart: true, best, note: `n=${n} is a sequence start (${n - 1} not in set) → chain length ${len} → best=${best}.`, line: 8, pyLine: 7 });
+      } else {
+        steps.push({ n, seqStart: false, best, note: `n=${n}: ${n - 1} is in set → not a start, skip.`, line: 5, pyLine: 4 });
+      }
+    }
+    steps.push({ n: null, best, final: true, note: `Done. Longest consecutive run = ${best}.`, line: 11, pyLine: 8 });
+    return steps;
+  }
+
+  function renderLongestConsecutive(nums) {
+    return (stage, step) => {
+      stage.innerHTML = `
+        ${cellsRow(nums, (v, i) => {
+          if (step.final) return 'dim';
+          if (step.n == null) return '';
+          if (step.seqStart && v >= step.n && v <= step.curr) return 'match';
+          if (v === step.n) return step.seqStart ? 'match' : 'dup';
+          return '';
+        })}
+        <div class="viz-panels">
+          <div class="viz-panel"><div class="viz-counter">${step.best}<span class="viz-counter-label">longest run so far</span></div></div>
+        </div>`;
+    };
+  }
+
+  // ── P4: Subarray Sum Equals K — prefix sum hashmap ──────────────────────
+  function traceSubarraySum(nums, k) {
+    const prefixCount = new Map([[0, 1]]);
+    let sum = 0, count = 0;
+    const steps = [{ i: -1, sum, count, map: Object.fromEntries(prefixCount), note: 'Start — prefixCount = {0:1}.', line: 3, pyLine: 4 }];
+    nums.forEach((n, i) => {
+      sum += n;
+      const need = sum - k;
+      const found = prefixCount.get(need) ?? 0;
+      count += found;
+      steps.push({ i, sum, count, map: Object.fromEntries(prefixCount),
+        note: `i=${i}: sum=${sum}. need ${sum}-${k}=${need} → seen ${found} time(s) → count=${count}.`, line: 7, pyLine: 8 });
+      prefixCount.set(sum, (prefixCount.get(sum) ?? 0) + 1);
+      steps.push({ i, sum, count, map: Object.fromEntries(prefixCount),
+        note: `record prefix sum ${sum} → prefixCount[${sum}]=${prefixCount.get(sum)}.`, line: 8, pyLine: 9 });
+    });
+    steps[steps.length - 1].final = true;
+    return steps;
+  }
+
+  function renderSubarraySum(nums) {
+    return (stage, step) => {
+      const mapChips = Object.entries(step.map).map(([k, v]) => `${k}:${v}`);
+      stage.innerHTML = `
+        ${cellsRow(nums, (v, i) => step.final ? 'dim' : (i === step.i ? 'cur' : (step.i >= 0 && i < step.i ? 'dim' : '')))}
+        <div class="viz-panels">
+          <div class="viz-panel"><div class="viz-panel-lbl">running sum</div><div class="viz-counter" style="font-size:20px">${step.sum}</div></div>
+          <div class="viz-panel"><div class="viz-counter">${step.count}<span class="viz-counter-label">subarrays found</span></div></div>
+          <div class="viz-panel"><div class="viz-panel-lbl">prefixCount</div>${chips(mapChips)}</div>
+        </div>`;
+    };
+  }
+
+  // ── P5: LRU Cache — recency order simulation ────────────────────────────
+  function traceLRU(capacity, ops) {
+    let order = []; // most-recent-first
+    const steps = [{ order: [], op: null, note: `LRUCache(${capacity}) created.`, line: 3, pyLine: 4 }];
+    const touch = (key, val) => { order = order.filter(e => e.key !== key); order.unshift({ key, val }); };
+    for (const op of ops) {
+      if (op.type === 'put') {
+        const existed = order.some(e => e.key === op.key);
+        touch(op.key, op.val);
+        let evicted = null;
+        if (order.length > capacity) evicted = order.pop();
+        steps.push({ order: [...order], op, evicted,
+          note: `put(${op.key}, ${op.val})${existed ? ' — key existed, updated' : ''}${evicted ? ` → evicts key ${evicted.key} (least recently used)` : ''}.`,
+          line: evicted ? 34 : 31, pyLine: evicted ? 14 : 12 });
+      } else {
+        const found = order.find(e => e.key === op.key);
+        if (found) touch(op.key, found.val);
+        steps.push({ order: [...order], op, result: found ? found.val : -1,
+          note: `get(${op.key}) → ${found ? found.val : -1}${found ? ' (moved to front — most recently used)' : ' (not found)'}.`,
+          line: found ? 24 : 23, pyLine: found ? 8 : 7 });
+      }
+    }
+    steps[steps.length - 1].final = true;
+    return steps;
+  }
+
+  function renderLRU(capacity) {
+    return (stage, step) => {
+      const chipsHtml = step.order.map((e, i) => `<span class="viz-chip${i === 0 ? ' new' : ''}">${e.key}:${e.val}</span>`).join('') || '<span class="viz-chip">∅</span>';
+      stage.innerHTML = `
+        <div class="viz-panel-lbl">recency order — MRU → LRU (capacity ${capacity})</div>
+        <div class="viz-chips">${chipsHtml}</div>
+        <div class="viz-panels" style="margin-top:10px">
+          <div class="viz-panel"><div class="viz-panel-lbl">operation</div><div class="viz-counter" style="font-size:16px">${step.op ? `${step.op.type}(${step.op.key}${step.op.type === 'put' ? ', ' + step.op.val : ''})` : '—'}</div></div>
+          ${'result' in step ? `<div class="viz-panel"><div class="viz-panel-lbl">returns</div><div class="viz-counter" style="font-size:20px">${step.result}</div></div>` : ''}
+        </div>`;
+    };
+  }
+
+  // ── Attach everything once the elements exist in the DOM ────────────────
+  mountVisualizer('viz-hash-p1', traceIsAnagram('anagram', 'nagaram'), withCode('hash-p1', renderIsAnagram('anagram', 'nagaram')));
+
+  const p2Nums = [1, 1, 1, 2, 2, 3], p2K = 2;
+  mountVisualizer('viz-hash-p2', traceTopKFrequent(p2Nums, p2K), withCode('hash-p2', renderTopKFrequent()));
+
+  const p3Nums = [100, 4, 200, 1, 3, 2];
+  mountVisualizer('viz-hash-p3', traceLongestConsecutive(p3Nums), withCode('hash-p3', renderLongestConsecutive(p3Nums)));
+
+  const p4Nums = [1, 1, 1], p4K = 2;
+  mountVisualizer('viz-hash-p4', traceSubarraySum(p4Nums, p4K), withCode('hash-p4', renderSubarraySum(p4Nums)));
+
+  const p5Ops = [
+    { type: 'put', key: 1, val: 1 },
+    { type: 'put', key: 2, val: 2 },
+    { type: 'get', key: 1 },
+    { type: 'put', key: 3, val: 3 },
+    { type: 'get', key: 2 },
+  ];
+  mountVisualizer('viz-hash-p5', traceLRU(2, p5Ops), withCode('hash-p5', renderLRU(2)));
+}

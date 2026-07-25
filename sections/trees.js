@@ -1,5 +1,7 @@
 // Section: trees
 // Auto-extracted from index.html
+import { autoWrapCodeLines, chips, withCode, mountVisualizer, buildTree, cloneTree, findTreeNode, treeLevels, renderTree } from '../components/viz-kit.js';
+
 const _html_trees = String.raw`
 <div id="sec-trees" class="section">
 <div class="sec-header"><div class="sec-meta"><span class="sec-badge dsa">Trees · 11</span></div><div class="sec-title">Binary Trees</div></div>
@@ -78,6 +80,7 @@ Level-order (BFS):           1,2,3,4,5   ← level-by-level, uses queue
 <div class="code-wrap"><div class="code-hdr"><span class="code-lbl">Recursive</span></div><pre><span class="py-kw">def</span> <span class="py-fn">max_depth</span>(root):
     <span class="py-kw">return</span> <span class="py-num">0</span> <span class="py-kw">if not</span> root <span class="py-kw">else</span> <span class="py-num">1</span> + <span class="py-fn">max</span>(<span class="py-fn">max_depth</span>(root.left), <span class="py-fn">max_depth</span>(root.right))</pre></div>
 </div>
+<algo-visualizer id="viz-tree-p1" title="Post-order Depth — trace"></algo-visualizer>
 </problem-card>
 
 <problem-card num="P2" title="Invert Binary Tree" difficulty="easy" tags="DFS">
@@ -96,6 +99,7 @@ Level-order (BFS):           1,2,3,4,5   ← level-by-level, uses queue
     root.left, root.right = <span class="py-fn">invert_tree</span>(root.right), <span class="py-fn">invert_tree</span>(root.left)
     <span class="py-kw">return</span> root</pre></div>
 </div>
+<algo-visualizer id="viz-tree-p2" title="Recursive Swap — trace"></algo-visualizer>
 </problem-card>
 
 <problem-card num="P3" title="Lowest Common Ancestor" difficulty="medium" tags="DFS,Bottom-up">
@@ -119,6 +123,7 @@ Level-order (BFS):           1,2,3,4,5   ← level-by-level, uses queue
     R = <span class="py-fn">lowest_common_ancestor</span>(root.right, p, q)
     <span class="py-kw">return</span> root <span class="py-kw">if</span> L <span class="py-kw">and</span> R <span class="py-kw">else</span> L <span class="py-kw">or</span> R</pre></div>
 </div>
+<algo-visualizer id="viz-tree-p3" title="Post-order LCA — trace"></algo-visualizer>
 </problem-card>
 
 <problem-card num="P4" title="Binary Tree Right Side View" difficulty="medium" tags="BFS Level Order">
@@ -153,6 +158,7 @@ Level-order (BFS):           1,2,3,4,5   ← level-by-level, uses queue
             <span class="py-kw">if</span> node.right: q.append(node.right)
     <span class="py-kw">return</span> res</pre></div>
 </div>
+<algo-visualizer id="viz-tree-p4" title="BFS Last-in-Level — trace"></algo-visualizer>
 </problem-card>
 
 <problem-card num="P5" title="Serialize and Deserialize Binary Tree" difficulty="hard" tags="BFS,Design">
@@ -204,16 +210,178 @@ Level-order (BFS):           1,2,3,4,5   ← level-by-level, uses queue
                 i += <span class="py-num">1</span>
         <span class="py-kw">return</span> root</pre></div>
 </div>
+<algo-visualizer id="viz-tree-p5" title="BFS Serialize — trace"></algo-visualizer>
 </problem-card>
 </div></div></div>
 `;
 
 (function() {
   const main = document.getElementById('main');
+  let section;
   if (main) {
     const wrapper = document.createElement('div');
     wrapper.innerHTML = _html_trees.trim();
-    const section = wrapper.firstElementChild;
+    section = wrapper.firstElementChild;
     if (section) main.appendChild(section);
   }
+  if (section) autoWrapCodeLines(section);
+  wireVisualizers();
 })();
+
+// ── Visualizer wiring — traces + renderers for the Binary Tree problems ─────
+// Trees are rendered as level-grouped rows (no connecting lines) — enough to
+// see which node is being visited without a full node-link layout engine.
+function wireVisualizers() {
+  // ── P1: Maximum Depth — post-order recursion ────────────────────────────
+  function traceMaxDepth(root) {
+    const steps = [{ visiting: null, note: 'Start DFS from root.', line: 1, pyLine: 2 }];
+    function dfs(node) {
+      if (!node) return 0;
+      steps.push({ visiting: node.id, note: `visit node ${node.val} → recurse left, then right.`, line: 1, pyLine: 2 });
+      const l = dfs(node.left);
+      const r = dfs(node.right);
+      const depth = 1 + Math.max(l, r);
+      steps.push({ visiting: node.id, depth, note: `node ${node.val}: depth = 1 + max(${l},${r}) = ${depth}.`, line: 1, pyLine: 2 });
+      return depth;
+    }
+    const total = dfs(root);
+    steps.push({ visiting: null, final: true, note: `Done. Max depth = ${total}.`, line: 1, pyLine: 2 });
+    return steps;
+  }
+
+  function renderMaxDepth(root) {
+    const levels = treeLevels(root);
+    return (stage, step) => {
+      stage.innerHTML = renderTree(levels, n => step.final ? 'dim' : (n.id === step.visiting ? (step.depth !== undefined ? 'match' : 'cur') : ''));
+    };
+  }
+
+  // ── P2: Invert Binary Tree — recursive swap ─────────────────────────────
+  function traceInvertTree(root) {
+    const steps = [{ tree: cloneTree(root), visiting: null, note: 'Start.', line: 1, pyLine: 1 }];
+    function dfs(node) {
+      if (!node) return;
+      steps.push({ tree: cloneTree(root), visiting: node.id, note: `visit node ${node.val} → recurse into children first.`, line: 2, pyLine: 2 });
+      dfs(node.left);
+      dfs(node.right);
+      [node.left, node.right] = [node.right, node.left];
+      steps.push({ tree: cloneTree(root), visiting: node.id, note: `swap children of node ${node.val}.`, line: 3, pyLine: 3 });
+    }
+    dfs(root);
+    steps.push({ tree: cloneTree(root), visiting: null, final: true, note: 'Done — tree inverted.', line: 4, pyLine: 4 });
+    return steps;
+  }
+
+  function renderInvertTree() {
+    return (stage, step) => {
+      const levels = treeLevels(step.tree);
+      stage.innerHTML = renderTree(levels, n => step.final ? '' : (n.id === step.visiting ? 'cur' : ''));
+    };
+  }
+
+  // ── P3: Lowest Common Ancestor — post-order DFS ─────────────────────────
+  function traceLCA(root, pVal, qVal) {
+    const p = findTreeNode(root, pVal), q = findTreeNode(root, qVal);
+    const steps = [{ visiting: null, note: `Start — find LCA of ${pVal} and ${qVal}.`, line: 2, pyLine: 2 }];
+    function dfs(node) {
+      if (!node || node === p || node === q) {
+        steps.push({ visiting: node ? node.id : null, note: node ? `node ${node.val} is p or q → base case, return it.` : 'null → return null.', line: 2, pyLine: 2 });
+        return node;
+      }
+      const left = dfs(node.left);
+      const right = dfs(node.right);
+      const result = left && right ? node : (left ?? right);
+      steps.push({ visiting: node.id, found: !!(left && right),
+        note: `node ${node.val}: left=${left ? left.val : 'null'}, right=${right ? right.val : 'null'} → ${left && right ? `both sides found → LCA is ${node.val}!` : `pass up ${result ? result.val : 'null'}.`}`,
+        line: 5, pyLine: 5 });
+      return result;
+    }
+    const lca = dfs(root);
+    steps.push({ visiting: lca ? lca.id : null, final: true, note: `Done. LCA(${pVal}, ${qVal}) = ${lca.val}.`, line: 5, pyLine: 5 });
+    return steps;
+  }
+
+  function renderLCA(root) {
+    const levels = treeLevels(root);
+    return (stage, step) => {
+      stage.innerHTML = renderTree(levels, n => step.final ? (n.id === step.visiting ? 'match' : 'dim') : (n.id === step.visiting ? (step.found ? 'match' : 'cur') : ''));
+    };
+  }
+
+  // ── P4: Binary Tree Right Side View — BFS ───────────────────────────────
+  function traceRightSideView(root) {
+    const res = [];
+    const queue = root ? [root] : [];
+    const steps = [{ res: [...res], visiting: null, note: 'Start — queue=[root].', line: 3, pyLine: 4 }];
+    while (queue.length) {
+      const n = queue.length;
+      for (let i = 0; i < n; i++) {
+        const node = queue.shift();
+        const isLast = i === n - 1;
+        if (isLast) res.push(node.val);
+        if (node.left) queue.push(node.left);
+        if (node.right) queue.push(node.right);
+        steps.push({ res: [...res], visiting: node.id, isLast,
+          note: `dequeue ${node.val}${isLast ? ' → last in level, add to result!' : ''}.`, line: isLast ? 8 : 9, pyLine: isLast ? 8 : 9 });
+      }
+    }
+    steps[steps.length - 1].final = true;
+    return steps;
+  }
+
+  function renderRightSideView(root) {
+    const levels = treeLevels(root);
+    return (stage, step) => {
+      stage.innerHTML = `
+        ${renderTree(levels, n => step.final ? 'dim' : (n.id === step.visiting ? (step.isLast ? 'match' : 'cur') : ''))}
+        <div class="viz-panel-lbl" style="margin-top:10px">right side view</div>
+        ${chips(step.res, ' new')}`;
+    };
+  }
+
+  // ── P5: Serialize Binary Tree — BFS ──────────────────────────────────────
+  function traceSerialize(root) {
+    const q = [root];
+    const vals = [];
+    const steps = [{ vals: [...vals], visiting: null, note: 'Start — queue=[root].', line: 3, pyLine: 5 }];
+    while (q.length) {
+      const n = q.shift();
+      if (!n) {
+        vals.push('#');
+        steps.push({ vals: [...vals], visiting: null, note: "null → push '#'.", line: 6, pyLine: 8 });
+        continue;
+      }
+      vals.push(n.val);
+      q.push(n.left, n.right);
+      steps.push({ vals: [...vals], visiting: n.id, note: `push ${n.val}, enqueue its two children (null shown as #).`, line: 7, pyLine: 9 });
+    }
+    steps.push({ vals: [...vals], visiting: null, final: true, note: `Done. Serialized: "${vals.join(',')}".`, line: 9, pyLine: 10 });
+    return steps;
+  }
+
+  function renderSerialize(root) {
+    const levels = treeLevels(root);
+    return (stage, step) => {
+      stage.innerHTML = `
+        ${renderTree(levels, n => step.final ? 'dim' : (n.id === step.visiting ? 'cur' : ''))}
+        <div class="viz-panel-lbl" style="margin-top:10px">serialized so far</div>
+        ${chips(step.vals, ' new')}`;
+    };
+  }
+
+  // ── Attach everything once the elements exist in the DOM ────────────────
+  const t1 = buildTree([3, 9, 20, null, null, 15, 7]);
+  mountVisualizer('viz-tree-p1', traceMaxDepth(t1), withCode('tree-p1', renderMaxDepth(t1)));
+
+  const t2 = buildTree([4, 2, 7, 1, 3, 6, 9]);
+  mountVisualizer('viz-tree-p2', traceInvertTree(t2), withCode('tree-p2', renderInvertTree()));
+
+  const t3 = buildTree([3, 5, 1, 6, 2, 0, 8, null, null, 7, 4]);
+  mountVisualizer('viz-tree-p3', traceLCA(t3, 5, 1), withCode('tree-p3', renderLCA(t3)));
+
+  const t4 = buildTree([1, 2, 3, null, 5, null, 4]);
+  mountVisualizer('viz-tree-p4', traceRightSideView(t4), withCode('tree-p4', renderRightSideView(t4)));
+
+  const t5 = buildTree([3, 9, 20, null, null, 15, 7]);
+  mountVisualizer('viz-tree-p5', traceSerialize(t5), withCode('tree-p5', renderSerialize(t5)));
+}

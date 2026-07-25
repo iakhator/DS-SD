@@ -132,3 +132,75 @@ export function mountVisualizer(vizId, steps, render) {
   const el = document.getElementById(vizId);
   if (el) el.load(steps, render);
 }
+
+// ── Binary tree helpers ──────────────────────────────────────────────────
+// Shared by any section visualizing a binary tree (Trees, BST, Heaps, ...).
+// A node is { val, left, right, id }; id defaults to the node's position in
+// the level-order input array, which is stable and unique enough to use as
+// a highlight key without a separate id-generator.
+
+// Builds a tree from a level-order array (LeetCode-style, null = missing).
+export function buildTree(vals) {
+  if (!vals.length || vals[0] === null) return null;
+  const root = { val: vals[0], left: null, right: null, id: 0 };
+  const queue = [root];
+  let i = 1;
+  while (queue.length && i < vals.length) {
+    const node = queue.shift();
+    if (i < vals.length && vals[i] !== null) { node.left = { val: vals[i], left: null, right: null, id: i }; queue.push(node.left); }
+    i++;
+    if (i < vals.length && vals[i] !== null) { node.right = { val: vals[i], left: null, right: null, id: i }; queue.push(node.right); }
+    i++;
+  }
+  return root;
+}
+
+// Deep-clones a tree — snapshot a mutable tree's shape before it changes.
+export function cloneTree(node) {
+  if (!node) return null;
+  return { val: node.val, id: node.id, left: cloneTree(node.left), right: cloneTree(node.right) };
+}
+
+// Finds the first node with the given value (used to locate p/q for LCA-style problems).
+export function findTreeNode(root, val) {
+  if (!root) return null;
+  if (root.val === val) return root;
+  return findTreeNode(root.left, val) || findTreeNode(root.right, val);
+}
+
+// Groups nodes into an array of levels (BFS order) for rendering.
+export function treeLevels(root) {
+  const levels = [];
+  let queue = root ? [root] : [];
+  while (queue.length) {
+    levels.push(queue);
+    const next = [];
+    for (const n of queue) { if (n.left) next.push(n.left); if (n.right) next.push(n.right); }
+    queue = next;
+  }
+  return levels;
+}
+
+// Renders levels as centered rows of .viz-cell nodes (no connecting lines —
+// enough to see which node is active without a full node-link layout engine).
+// highlightFn(node) returns an extra class name ('cur' | 'match' | 'dim' | '').
+export function renderTree(levels, highlightFn) {
+  return `<div style="display:flex;flex-direction:column;gap:10px;align-items:center">${levels.map(level =>
+    `<div style="display:flex;gap:10px;justify-content:center">${level.map(n => {
+      const cls = highlightFn(n);
+      return `<div class="viz-cell${cls ? ' ' + cls : ''}">${n.val}</div>`;
+    }).join('')}</div>`
+  ).join('')}</div>`;
+}
+
+// ── 2D grid helper ────────────────────────────────────────────────────────
+// Renders a 2D array (a matrix, a maze, a flood-fill grid) as a CSS grid of
+// .viz-cell nodes. highlightFn(value, row, col) returns an extra class name.
+export function renderGrid(grid, highlightFn, cellSize = 40) {
+  return `<div style="display:inline-grid;grid-template-columns:repeat(${grid[0].length},${cellSize}px);gap:3px">${
+    grid.map((row, ri) => row.map((v, ci) => {
+      const cls = highlightFn(v, ri, ci) || '';
+      return `<div class="viz-cell${cls ? ' ' + cls : ''}" style="min-width:${cellSize}px;height:${cellSize}px">${v}</div>`;
+    }).join('')).join('')
+  }</div>`;
+}

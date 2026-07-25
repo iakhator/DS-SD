@@ -1,5 +1,7 @@
 // Section: heaps
 // Auto-extracted from index.html
+import { autoWrapCodeLines, cellsRow, chips, withCode, mountVisualizer } from '../components/viz-kit.js';
+
 const _html_heaps = String.raw`
 <div id="sec-heaps" class="section">
 <div class="sec-header"><div class="sec-meta"><span class="sec-badge dsa">Trees · 13</span></div><div class="sec-title">Heaps & Priority Queue</div></div>
@@ -95,6 +97,7 @@ heapq.nsmallest(k, nums)  <span class="py-cmt"># O(n log k)</span></pre></div></
     <span class="py-cmt">#     if n > h[0]: heapq.heapreplace(h, n)</span>
     <span class="py-cmt"># return h[0]</span></pre></div>
 </div>
+<algo-visualizer id="viz-heap-p1" title="Min-Heap of Size K — trace"></algo-visualizer>
 </problem-card>
 
 <problem-card num="P2" title="Task Scheduler" difficulty="medium" tags="Max-Heap,Greedy">
@@ -122,6 +125,7 @@ heapq.nsmallest(k, nums)  <span class="py-cmt"># O(n log k)</span></pre></div></
     max_count = <span class="py-fn">sum</span>(<span class="py-num">1</span> <span class="py-kw">for</span> f <span class="py-kw">in</span> freq.values() <span class="py-kw">if</span> f == max_f)
     <span class="py-kw">return</span> <span class="py-fn">max</span>(<span class="py-fn">len</span>(tasks), (max_f - <span class="py-num">1</span>) * (n + <span class="py-num">1</span>) + max_count)</pre></div>
 </div>
+<algo-visualizer id="viz-heap-p2" title="Frequency + Formula — trace"></algo-visualizer>
 </problem-card>
 
 <problem-card num="P5" title="Find Median from Data Stream" difficulty="hard" tags="Two Heaps,Design">
@@ -160,6 +164,7 @@ heapq.nsmallest(k, nums)  <span class="py-cmt"># O(n log k)</span></pre></div></
         <span class="py-kw">if</span> <span class="py-fn">len</span>(self.lo) > <span class="py-fn">len</span>(self.hi): <span class="py-kw">return</span> -self.lo[<span class="py-num">0</span>]
         <span class="py-kw">return</span> (-self.lo[<span class="py-num">0</span>] + self.hi[<span class="py-num">0</span>]) / <span class="py-num">2</span></pre></div>
 </div>
+<algo-visualizer id="viz-heap-p5" title="Two Heaps — trace"></algo-visualizer>
 </problem-card>
 
 <problem-card num="P3" title="K Closest Points to Origin" difficulty="medium" tags="Max-Heap">
@@ -185,6 +190,7 @@ heapq.nsmallest(k, nums)  <span class="py-cmt"># O(n log k)</span></pre></div></
 <span class="py-kw">def</span> <span class="py-fn">k_closest</span>(points, k):
     <span class="py-kw">return</span> heapq.nsmallest(k, points, key=<span class="py-kw">lambda</span> p: p[<span class="py-num">0</span>]**<span class="py-num">2</span> + p[<span class="py-num">1</span>]**<span class="py-num">2</span>)</pre></div>
 </div>
+<algo-visualizer id="viz-heap-p3" title="Max-Heap of Size K — trace"></algo-visualizer>
 </problem-card>
 
 <problem-card num="P4" title="Top K Frequent Words" difficulty="medium" tags="Heap,Sort">
@@ -205,6 +211,7 @@ heapq.nsmallest(k, nums)  <span class="py-cmt"># O(n log k)</span></pre></div></
     freq = Counter(words)
     <span class="py-kw">return</span> <span class="py-fn">sorted</span>(freq, key=<span class="py-kw">lambda</span> w: (-freq[w], w))[:k]</pre></div>
 </div>
+<algo-visualizer id="viz-heap-p4" title="Counter + Sort — trace"></algo-visualizer>
 </problem-card>
 
 </div></div></div>
@@ -212,10 +219,170 @@ heapq.nsmallest(k, nums)  <span class="py-cmt"># O(n log k)</span></pre></div></
 
 (function() {
   const main = document.getElementById('main');
+  let section;
   if (main) {
     const wrapper = document.createElement('div');
     wrapper.innerHTML = _html_heaps.trim();
-    const section = wrapper.firstElementChild;
+    section = wrapper.firstElementChild;
     if (section) main.appendChild(section);
   }
+  if (section) autoWrapCodeLines(section);
+  wireVisualizers();
 })();
+
+// ── Visualizer wiring — traces + renderers for the Heaps problems ───────────
+// Heap contents are simulated with a plain sorted array (same top element and
+// size behavior as a real binary heap) rather than reproducing sift-up/down
+// array mechanics, which the problems' own code doesn't re-show anyway.
+function wireVisualizers() {
+  // ── P1: Kth Largest Element — min-heap of size k ────────────────────────
+  function traceFindKthLargest(nums, k) {
+    let heap = [];
+    const steps = [{ idx: -1, heap: [], note: 'Start — empty min-heap.', line: 2, pyLine: null }];
+    nums.forEach((n, idx) => {
+      heap.push(n);
+      heap.sort((a, b) => a - b);
+      let evicted = null;
+      if (heap.length > k) evicted = heap.shift();
+      steps.push({ idx, heap: [...heap], evicted,
+        note: `push ${n}${evicted !== null ? `, size > k → evict smallest (${evicted})` : ''}.`, line: evicted !== null ? 5 : 4, pyLine: null });
+    });
+    steps.push({ idx: -1, heap: [...heap], final: true, note: `Done. Top of heap = kth largest = ${heap[0]}.`, line: 7, pyLine: null });
+    return steps;
+  }
+
+  function renderFindKthLargest(nums) {
+    return (stage, step) => {
+      stage.innerHTML = `
+        ${cellsRow(nums, (v, i) => step.final ? 'dim' : (i === step.idx ? 'cur' : (step.idx >= 0 && i < step.idx ? 'dim' : '')))}
+        <div class="viz-panels" style="margin-top:8px">
+          <div class="viz-panel"><div class="viz-panel-lbl">min-heap (size ≤ k)</div>${chips(step.heap)}</div>
+          ${step.final ? `<div class="viz-panel"><div class="viz-counter">${step.heap[0]}<span class="viz-counter-label">kth largest</span></div></div>` : ''}
+        </div>`;
+    };
+  }
+
+  // ── P2: Task Scheduler — frequency + formula ────────────────────────────
+  function traceLeastInterval(tasks, n) {
+    const freq = new Map();
+    const steps = [{ idx: -1, freq: {}, note: 'Start — build frequency map.', line: 2, pyLine: 3 }];
+    tasks.forEach((t, i) => {
+      freq.set(t, (freq.get(t) ?? 0) + 1);
+      steps.push({ idx: i, freq: Object.fromEntries(freq), note: `count '${t}' → freq['${t}']=${freq.get(t)}.`, line: 3, pyLine: 3 });
+    });
+    const max = Math.max(...freq.values());
+    const maxCount = [...freq.values()].filter(v => v === max).length;
+    const result = Math.max(tasks.length, (max - 1) * (n + 1) + maxCount);
+    steps.push({ idx: -1, freq: Object.fromEntries(freq), result, final: true,
+      note: `maxFreq=${max}, tasksWithMaxFreq=${maxCount} → max(${tasks.length}, (${max}-1)×(${n}+1)+${maxCount}) = ${result}.`, line: 6, pyLine: 6 });
+    return steps;
+  }
+
+  function renderLeastInterval(tasks) {
+    return (stage, step) => {
+      const freqChips = Object.entries(step.freq).map(([k, v]) => `${k}:${v}`);
+      stage.innerHTML = `
+        ${cellsRow(tasks, (v, i) => step.final ? 'dim' : (i === step.idx ? 'cur' : (step.idx >= 0 && i < step.idx ? 'dim' : '')))}
+        <div class="viz-panels" style="margin-top:8px">
+          <div class="viz-panel"><div class="viz-panel-lbl">freq</div>${chips(freqChips)}</div>
+          ${step.final ? `<div class="viz-panel"><div class="viz-counter">${step.result}<span class="viz-counter-label">min intervals</span></div></div>` : ''}
+        </div>`;
+    };
+  }
+
+  // ── P3: K Closest Points to Origin — max-heap of size k ─────────────────
+  function traceKClosest(points, k) {
+    const dist = ([x, y]) => x * x + y * y;
+    let heap = [];
+    const steps = [{ idx: -1, heap: [], note: 'Start — empty max-heap (ordered by distance).', line: 4, pyLine: null }];
+    points.forEach((p, i) => {
+      heap.push(p);
+      heap.sort((a, b) => dist(b) - dist(a));
+      let evicted = null;
+      if (heap.length > k) evicted = heap.shift();
+      steps.push({ idx: i, heap: heap.map(pt => `[${pt.join(',')}]`),
+        note: `push [${p.join(',')}] (dist²=${dist(p)})${evicted ? `, size>k → evict farthest [${evicted.join(',')}]` : ''}.`, line: evicted ? 7 : 6, pyLine: null });
+    });
+    steps[steps.length - 1].final = true;
+    return steps;
+  }
+
+  function renderKClosest(points) {
+    const labels = points.map(p => `${p[0]},${p[1]}`);
+    return (stage, step) => {
+      stage.innerHTML = `
+        ${cellsRow(labels, (v, i) => step.final ? 'dim' : (i === step.idx ? 'cur' : (i < step.idx ? 'dim' : '')))}
+        <div class="viz-panels" style="margin-top:8px"><div class="viz-panel"><div class="viz-panel-lbl">max-heap (size ≤ k)</div>${chips(step.heap)}</div></div>`;
+    };
+  }
+
+  // ── P4: Top K Frequent Words — count then sort ──────────────────────────
+  function traceTopKFrequentWords(words, k) {
+    const freq = new Map();
+    const steps = [{ idx: -1, freq: {}, sorted: null, result: null, note: 'Start — build frequency map.', line: 2, pyLine: 3 }];
+    words.forEach((w, i) => {
+      freq.set(w, (freq.get(w) ?? 0) + 1);
+      steps.push({ idx: i, freq: Object.fromEntries(freq), sorted: null, result: null, note: `count '${w}' → freq['${w}']=${freq.get(w)}.`, line: 3, pyLine: 3 });
+    });
+    const sortedWords = [...freq.keys()].sort((a, b) => freq.get(b) - freq.get(a) || a.localeCompare(b));
+    steps.push({ idx: -1, freq: Object.fromEntries(freq), sorted: sortedWords, result: null, note: `sort by frequency desc, then alphabetically: [${sortedWords.join(',')}].`, line: 5, pyLine: 4 });
+    const result = sortedWords.slice(0, k);
+    steps.push({ idx: -1, freq: Object.fromEntries(freq), sorted: sortedWords, result, final: true, note: `Take top ${k}: [${result.join(',')}].`, line: 6, pyLine: 4 });
+    return steps;
+  }
+
+  function renderTopKFrequentWords(words) {
+    return (stage, step) => {
+      const freqChips = Object.entries(step.freq).map(([k, v]) => `${k}:${v}`);
+      stage.innerHTML = `
+        ${cellsRow(words, (v, i) => step.idx >= 0 ? (i === step.idx ? 'cur' : (i < step.idx ? 'dim' : '')) : 'dim')}
+        <div class="viz-panels" style="margin-top:8px">
+          <div class="viz-panel"><div class="viz-panel-lbl">freq</div>${chips(freqChips)}</div>
+          ${step.sorted ? `<div class="viz-panel"><div class="viz-panel-lbl">sorted</div>${chips(step.sorted, step.result ? '' : ' new')}</div>` : ''}
+          ${step.result ? `<div class="viz-panel"><div class="viz-panel-lbl">top ${step.result.length}</div>${chips(step.result, ' new')}</div>` : ''}
+        </div>`;
+    };
+  }
+
+  // ── P5: Find Median from Data Stream — two heaps ────────────────────────
+  function traceMedianFinder(nums) {
+    let lo = [], hi = [];
+    const steps = [{ lo: [], hi: [], note: 'Start — lo=[], hi=[].', line: 2, pyLine: 3 }];
+    nums.forEach(n => {
+      lo.push(n); lo.sort((a, b) => b - a);
+      const moved = lo.shift();
+      hi.push(moved); hi.sort((a, b) => a - b);
+      let rebalanced = false;
+      if (hi.length > lo.length) { const back = hi.shift(); lo.push(back); lo.sort((a, b) => b - a); rebalanced = true; }
+      const median = lo.length > hi.length ? lo[0] : (lo[0] + hi[0]) / 2;
+      steps.push({ lo: [...lo], hi: [...hi], median, note: `addNum(${n})${rebalanced ? ' — rebalance lo/hi' : ''} → median = ${median}.`, line: rebalanced ? 7 : 5, pyLine: rebalanced ? 8 : 6 });
+    });
+    steps[steps.length - 1].final = true;
+    return steps;
+  }
+
+  function renderMedianFinder() {
+    return (stage, step) => {
+      stage.innerHTML = `
+        <div class="viz-panels">
+          <div class="viz-panel"><div class="viz-panel-lbl">lo (max-heap, lower half)</div>${chips(step.lo)}</div>
+          <div class="viz-panel"><div class="viz-panel-lbl">hi (min-heap, upper half)</div>${chips(step.hi)}</div>
+          ${step.median !== undefined ? `<div class="viz-panel"><div class="viz-counter">${step.median}<span class="viz-counter-label">median</span></div></div>` : ''}
+        </div>`;
+    };
+  }
+
+  // ── Attach everything once the elements exist in the DOM ────────────────
+  mountVisualizer('viz-heap-p1', traceFindKthLargest([3, 2, 1, 5, 6, 4], 2), withCode('heap-p1', renderFindKthLargest([3, 2, 1, 5, 6, 4])));
+
+  const p2Tasks = ['A', 'A', 'A', 'B', 'B', 'B'];
+  mountVisualizer('viz-heap-p2', traceLeastInterval(p2Tasks, 2), withCode('heap-p2', renderLeastInterval(p2Tasks)));
+
+  const p3Points = [[1, 3], [-2, 2]];
+  mountVisualizer('viz-heap-p3', traceKClosest(p3Points, 1), withCode('heap-p3', renderKClosest(p3Points)));
+
+  const p4Words = ['i', 'love', 'code', 'i', 'love', 'coding'];
+  mountVisualizer('viz-heap-p4', traceTopKFrequentWords(p4Words, 2), withCode('heap-p4', renderTopKFrequentWords(p4Words)));
+
+  mountVisualizer('viz-heap-p5', traceMedianFinder([5, 15, 1, 3]), withCode('heap-p5', renderMedianFinder()));
+}

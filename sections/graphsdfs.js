@@ -1,5 +1,7 @@
 // Section: graphsdfs
 // Auto-extracted from index.html
+import { autoWrapCodeLines, chips, withCode, mountVisualizer, renderGrid } from '../components/viz-kit.js';
+
 const _html_graphsdfs = String.raw`
 <div id="sec-graphsdfs" class="section">
 <div class="sec-header"><div class="sec-meta"><span class="sec-badge dsa">Graphs · 15</span></div><div class="sec-title">Graphs — DFS & Advanced</div></div>
@@ -71,6 +73,7 @@ const _html_graphsdfs = String.raw`
         <span class="py-kw">return</span> copy
     <span class="py-kw">return</span> <span class="py-fn">dfs</span>(node) <span class="py-kw">if</span> node <span class="py-kw">else</span> <span class="py-kw">None</span></pre></div>
 </div>
+<algo-visualizer id="viz-gdfs-p1" title="DFS + Memoization — trace"></algo-visualizer>
 </problem-card>
 
 <problem-card num="P2" title="Course Schedule II (Topological Sort)" difficulty="medium" tags="Topological Sort,DAG">
@@ -103,6 +106,7 @@ const _html_graphsdfs = String.raw`
             <span class="py-kw">if</span> ind[v]==<span class="py-num">0</span>: q.append(v)
     <span class="py-kw">return</span> res <span class="py-kw">if</span> <span class="py-fn">len</span>(res)==n <span class="py-kw">else</span> []</pre></div>
 </div>
+<algo-visualizer id="viz-gdfs-p2" title="Kahn's Algorithm — trace"></algo-visualizer>
 </problem-card>
 
 <problem-card num="P5" title="Pacific Atlantic Water Flow" difficulty="hard" tags="Multi-source BFS,Set Intersection">
@@ -149,16 +153,130 @@ const _html_graphsdfs = String.raw`
     atl = [(r,C-<span class="py-num">1</span>) <span class="py-kw">for</span> r <span class="py-kw">in</span> <span class="py-fn">range</span>(R)] + [(R-<span class="py-num">1</span>,c) <span class="py-kw">for</span> c <span class="py-kw">in</span> <span class="py-fn">range</span>(C)]
     <span class="py-kw">return</span> [[r,c] <span class="py-kw">for</span> r,c <span class="py-kw">in</span> <span class="py-fn">bfs</span>(pac) & <span class="py-fn">bfs</span>(atl)]</pre></div>
 </div>
+<algo-visualizer id="viz-gdfs-p5" title="Reverse BFS Intersection — trace"></algo-visualizer>
 </problem-card>
 </div></div></div>
 `;
 
 (function() {
   const main = document.getElementById('main');
+  let section;
   if (main) {
     const wrapper = document.createElement('div');
     wrapper.innerHTML = _html_graphsdfs.trim();
-    const section = wrapper.firstElementChild;
+    section = wrapper.firstElementChild;
     if (section) main.appendChild(section);
   }
+  if (section) autoWrapCodeLines(section);
+  wireVisualizers();
 })();
+
+// ── Visualizer wiring — traces + renderers for the Graphs/DFS problems ──────
+function wireVisualizers() {
+  // ── P1: Clone Graph — DFS + memoization ─────────────────────────────────
+  function traceCloneGraph(adj, start) {
+    const memo = new Map();
+    const steps = [{ cloned: [], note: `Start DFS from node ${start}.`, line: 2, pyLine: 2 }];
+    function dfs(n) {
+      if (memo.has(n)) {
+        steps.push({ cloned: [...memo.keys()], note: `node ${n} already cloned → return cached copy.`, line: 4, pyLine: 4 });
+        return memo.get(n);
+      }
+      memo.set(n, true);
+      steps.push({ cloned: [...memo.keys()], note: `clone node ${n}, then recurse into neighbors [${adj[n].join(',')}].`, line: 6, pyLine: 6 });
+      for (const nb of adj[n]) dfs(nb);
+      return true;
+    }
+    dfs(start);
+    steps.push({ cloned: [...memo.keys()], final: true, note: `Done. Cloned ${memo.size} nodes.`, line: 10, pyLine: 9 });
+    return steps;
+  }
+
+  function renderCloneGraph() {
+    return (stage, step) => {
+      stage.innerHTML = `<div class="viz-panels"><div class="viz-panel"><div class="viz-panel-lbl">cloned nodes</div>${chips(step.cloned, ' new')}</div></div>`;
+    };
+  }
+
+  // ── P2: Course Schedule II — Kahn's algorithm ────────────────────────────
+  function traceFindOrder(n, prereqs) {
+    const adj = Array.from({ length: n }, () => []);
+    const ind = new Array(n).fill(0);
+    for (const [a, b] of prereqs) { adj[b].push(a); ind[a]++; }
+    const q = [], res = [];
+    for (let i = 0; i < n; i++) if (ind[i] === 0) q.push(i);
+    const steps = [{ q: [...q], res: [...res], note: `Start — courses with no prereqs: [${q.join(',')}].`, line: 6, pyLine: 4 }];
+    while (q.length) {
+      const u = q.shift();
+      res.push(u);
+      const unlocked = [];
+      for (const v of adj[u]) if (--ind[v] === 0) { q.push(v); unlocked.push(v); }
+      steps.push({ q: [...q], res: [...res], note: `take course ${u}${unlocked.length ? ` → unlocks [${unlocked.join(',')}]` : ''}.`, line: 8, pyLine: 6 });
+    }
+    steps.push({ q: [...q], res: [...res], final: true,
+      note: `Done. ${res.length === n ? `Order: [${res.join(',')}]` : 'Cycle detected → impossible!'}`, line: 11, pyLine: 11 });
+    return steps;
+  }
+
+  function renderFindOrder() {
+    return (stage, step) => {
+      stage.innerHTML = `
+        <div class="viz-panels">
+          <div class="viz-panel"><div class="viz-panel-lbl">queue (0 in-degree)</div>${chips(step.q)}</div>
+          <div class="viz-panel"><div class="viz-panel-lbl">course order</div>${chips(step.res, ' new')}</div>
+        </div>`;
+    };
+  }
+
+  // ── P5: Pacific Atlantic Water Flow — reverse BFS + intersection ────────
+  function tracePacificAtlantic(h) {
+    const R = h.length, C = h[0].length;
+    const dirs = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+    function bfs(starts) {
+      const vis = new Set(starts.map(([r, c]) => `${r},${c}`));
+      const q = [...starts];
+      while (q.length) {
+        const [r, c] = q.shift();
+        for (const [dr, dc] of dirs) {
+          const nr = r + dr, nc = c + dc, key = `${nr},${nc}`;
+          if (nr >= 0 && nr < R && nc >= 0 && nc < C && !vis.has(key) && h[nr][nc] >= h[r][c]) { vis.add(key); q.push([nr, nc]); }
+        }
+      }
+      return vis;
+    }
+    const pac = [], atl = [];
+    for (let r = 0; r < R; r++) { pac.push([r, 0]); atl.push([r, C - 1]); }
+    for (let c = 0; c < C; c++) { pac.push([0, c]); atl.push([R - 1, c]); }
+    const steps = [{ pSet: new Set(), aSet: new Set(), note: "Start — BFS inward from both oceans' borders.", line: 2, pyLine: 3 }];
+    const pSet = bfs(pac);
+    steps.push({ pSet, aSet: new Set(), note: `Pacific-reachable: ${pSet.size} cells (BFS from top+left borders).`, line: 18, pyLine: 15 });
+    const aSet = bfs(atl);
+    steps.push({ pSet, aSet, note: `Atlantic-reachable: ${aSet.size} cells (BFS from bottom+right borders).`, line: 18, pyLine: 15 });
+    const result = [...pSet].filter(k => aSet.has(k));
+    steps.push({ pSet, aSet, result, final: true, note: `Intersection: ${result.length} cell(s) can reach BOTH oceans.`, line: 19, pyLine: 15 });
+    return steps;
+  }
+
+  function renderPacificAtlantic(h) {
+    return (stage, step) => {
+      stage.innerHTML = renderGrid(h, (v, r, c) => {
+        const key = `${r},${c}`;
+        const inP = step.pSet.has(key), inA = step.aSet.has(key);
+        if (step.final) return (inP && inA) ? 'match' : 'dim';
+        if (inP && inA) return 'match';
+        if (inP) return 'cur';
+        if (inA) return 'cur2';
+        return '';
+      });
+    };
+  }
+
+  // ── Attach everything once the elements exist in the DOM ────────────────
+  const p1Adj = { 1: [2, 4], 2: [1, 3], 3: [2, 4], 4: [1, 3] };
+  mountVisualizer('viz-gdfs-p1', traceCloneGraph(p1Adj, 1), withCode('gdfs-p1', renderCloneGraph()));
+
+  mountVisualizer('viz-gdfs-p2', traceFindOrder(4, [[1, 0], [2, 0], [3, 1], [3, 2]]), withCode('gdfs-p2', renderFindOrder()));
+
+  const p5Heights = [[1, 2, 2, 3, 5], [3, 2, 3, 4, 4], [2, 4, 5, 3, 1], [6, 7, 1, 4, 5], [5, 1, 1, 2, 4]];
+  mountVisualizer('viz-gdfs-p5', tracePacificAtlantic(p5Heights), withCode('gdfs-p5', renderPacificAtlantic(p5Heights)));
+}

@@ -1,5 +1,7 @@
 // Section: queue
 // Auto-extracted from index.html
+import { autoWrapCodeLines, chips, withCode, mountVisualizer } from '../components/viz-kit.js';
+
 const _html_queue = String.raw`
 <div id="sec-queue" class="section">
 <div class="sec-header"><div class="sec-meta"><span class="sec-badge dsa">Linear · 07</span></div><div class="sec-title">Queue & Deque</div></div>
@@ -57,15 +59,61 @@ q.pop()           <span class="py-cmt"># pop right  — O(1) LIFO</span>
         <span class="py-kw">for</span> nbr <span class="py-kw">in</span> graph.get(node, []):
             <span class="py-kw">if</span> nbr <span class="py-kw">not in</span> visited:
                 visited.add(nbr); queue.append(nbr)</pre></div></div>
+<algo-visualizer id="viz-q-bfs" title="BFS Wave Front — trace"></algo-visualizer>
 </div></div>
 `;
 
 (function() {
   const main = document.getElementById('main');
+  let section;
   if (main) {
     const wrapper = document.createElement('div');
     wrapper.innerHTML = _html_queue.trim();
-    const section = wrapper.firstElementChild;
+    section = wrapper.firstElementChild;
     if (section) main.appendChild(section);
   }
+  if (section) autoWrapCodeLines(section);
+  wireVisualizers();
 })();
+
+// ── Visualizer wiring — BFS-with-queue template trace ────────────────────────
+function wireVisualizers() {
+  function traceBFS(graph, start) {
+    const visited = new Set([start]);
+    const queue = [start];
+    const order = [];
+    const steps = [{ node: null, queue: [...queue], visited: [...visited], order: [...order],
+      note: `Start — queue=[${start}], visited={${start}}.`, line: 14, pyLine: 13 }];
+    while (queue.length) {
+      const node = queue.shift();
+      order.push(node);
+      const added = [];
+      for (const neighbor of graph[node] ?? []) {
+        if (!visited.has(neighbor)) {
+          visited.add(neighbor);
+          queue.push(neighbor);
+          added.push(neighbor);
+        }
+      }
+      steps.push({ node, queue: [...queue], visited: [...visited], order: [...order],
+        note: `dequeue '${node}'${added.length ? ` → enqueue new neighbor(s) [${added.join(',')}]` : ' → no new neighbors'}.`,
+        line: 16, pyLine: 15 });
+    }
+    steps[steps.length - 1].final = true;
+    return steps;
+  }
+
+  function renderBFS() {
+    return (stage, step) => {
+      stage.innerHTML = `
+        <div class="viz-panels">
+          <div class="viz-panel"><div class="viz-panel-lbl">queue (front→back)</div>${chips(step.queue)}</div>
+          <div class="viz-panel"><div class="viz-panel-lbl">visited</div>${chips(step.visited)}</div>
+          <div class="viz-panel"><div class="viz-panel-lbl">BFS order</div>${chips(step.order, ' new')}</div>
+        </div>`;
+    };
+  }
+
+  const graph = { A: ['B', 'C'], B: ['A', 'D'], C: ['A', 'D'], D: ['B', 'C', 'E'], E: ['D'] };
+  mountVisualizer('viz-q-bfs', traceBFS(graph, 'A'), withCode('q-impl', renderBFS()));
+}

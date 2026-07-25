@@ -1,5 +1,7 @@
 // Section: slidingwindow
 // Auto-extracted from index.html
+import { autoWrapCodeLines, cellsRow, chips, withCode, mountVisualizer } from '../components/viz-kit.js';
+
 const _html_slidingwindow = String.raw`
 <div id="sec-slidingwindow" class="section">
 <div class="sec-header"><div class="sec-meta"><span class="sec-badge dsa">Patterns · 05</span></div><div class="sec-title">Sliding Window</div></div>
@@ -81,6 +83,7 @@ const _html_slidingwindow = String.raw`
         best = <span class="py-fn">max</span>(best, s)
     <span class="py-kw">return</span> best / k</pre></div>
 </div>
+<algo-visualizer id="viz-sw-p1" title="Fixed Window Slide — trace"></algo-visualizer>
 </problem-card>
 
 <problem-card num="P2" title="Longest Substring Without Repeating Characters" difficulty="medium" tags="Variable Window,HashSet">
@@ -111,6 +114,7 @@ const _html_slidingwindow = String.raw`
         best = <span class="py-fn">max</span>(best, r - l + <span class="py-num">1</span>)
     <span class="py-kw">return</span> best</pre></div>
 </div>
+<algo-visualizer id="viz-sw-p2" title="Variable Window — trace"></algo-visualizer>
 </problem-card>
 
 <problem-card num="P3" title="Permutation in String" difficulty="medium" tags="Fixed Window,Freq Map">
@@ -150,6 +154,7 @@ const _html_slidingwindow = String.raw`
         <span class="py-kw">if</span> need == win: <span class="py-kw">return</span> <span class="py-kw">True</span>
     <span class="py-kw">return</span> <span class="py-kw">False</span></pre></div>
 </div>
+<algo-visualizer id="viz-sw-p3" title="Fixed Window Freq Match — trace"></algo-visualizer>
 </problem-card>
 
 <problem-card num="P4" title="Longest Repeating Character Replacement" difficulty="medium" tags="Variable Window,Freq Count">
@@ -185,6 +190,7 @@ const _html_slidingwindow = String.raw`
         best = <span class="py-fn">max</span>(best, r-l+<span class="py-num">1</span>)
     <span class="py-kw">return</span> best</pre></div>
 </div>
+<algo-visualizer id="viz-sw-p4" title="Max Frequency Trick — trace"></algo-visualizer>
 </problem-card>
 
 <problem-card num="P5" title="Sliding Window Maximum (Deque)" difficulty="hard" tags="Monotonic Deque,O(n)">
@@ -220,6 +226,7 @@ const _html_slidingwindow = String.raw`
         <span class="py-kw">if</span> r >= k-<span class="py-num">1</span>: res.append(nums[dq[<span class="py-num">0</span>]])
     <span class="py-kw">return</span> res</pre></div>
 </div>
+<algo-visualizer id="viz-sw-p5" title="Monotonic Deque — trace"></algo-visualizer>
 </problem-card>
 
 </div></div></div>
@@ -227,10 +234,198 @@ const _html_slidingwindow = String.raw`
 
 (function() {
   const main = document.getElementById('main');
+  let section;
   if (main) {
     const wrapper = document.createElement('div');
     wrapper.innerHTML = _html_slidingwindow.trim();
-    const section = wrapper.firstElementChild;
+    section = wrapper.firstElementChild;
     if (section) main.appendChild(section);
   }
+  if (section) autoWrapCodeLines(section);
+  wireVisualizers();
 })();
+
+// ── Visualizer wiring — traces + renderers for the Sliding Window problems ──
+function wireVisualizers() {
+  // ── P1: Maximum Average Subarray I — fixed window ───────────────────────
+  function traceMaxAverage(nums, k) {
+    let sum = nums.slice(0, k).reduce((a, b) => a + b, 0);
+    let max = sum;
+    const steps = [{ l: 0, r: k - 1, sum, max, note: `Initial window [0..${k - 1}]: sum=${sum}.`, line: 2, pyLine: 2 }];
+    for (let i = k; i < nums.length; i++) {
+      sum += nums[i] - nums[i - k];
+      max = Math.max(max, sum);
+      steps.push({ l: i - k + 1, r: i, sum, max, note: `slide: +nums[${i}](${nums[i]}) −nums[${i - k}](${nums[i - k]}) → sum=${sum}, max=${max}.`, line: 5, pyLine: 4 });
+    }
+    steps.push({ l: nums.length - k, r: nums.length - 1, sum, max, final: true, note: `Done. Max average = ${max}/${k} = ${(max / k).toFixed(2)}.`, line: 8, pyLine: 6 });
+    return steps;
+  }
+
+  function renderMaxAverage(nums) {
+    return (stage, step) => {
+      stage.innerHTML = `
+        ${cellsRow(nums,
+          (v, i) => step.final ? (i >= step.l && i <= step.r ? 'match' : 'dim') : (i >= step.l && i <= step.r ? 'seen' : ''),
+          (v, i) => i === step.l ? 'L' : i === step.r ? 'R' : '')}
+        <div class="viz-panels">
+          <div class="viz-panel"><div class="viz-panel-lbl">window sum</div><div class="viz-counter" style="font-size:20px">${step.sum}</div></div>
+          <div class="viz-panel"><div class="viz-counter">${step.max}<span class="viz-counter-label">max sum</span></div></div>
+        </div>`;
+    };
+  }
+
+  // ── P2: Longest Substring Without Repeating Characters ──────────────────
+  function traceLongestSubstring(s) {
+    const last = new Map();
+    let l = 0, best = 0;
+    const steps = [{ r: -1, l, best, note: 'Start — l=0, best=0.', line: 3, pyLine: 2 }];
+    for (let r = 0; r < s.length; r++) {
+      let jumped = false;
+      if (last.has(s[r]) && last.get(s[r]) >= l) { l = last.get(s[r]) + 1; jumped = true; }
+      last.set(s[r], r);
+      best = Math.max(best, r - l + 1);
+      steps.push({ r, l, best, jumped,
+        note: `r=${r} ('${s[r]}')${jumped ? `: duplicate → jump l to ${l}` : ''}. window="${s.slice(l, r + 1)}" (len ${r - l + 1}) → best=${best}.`,
+        line: jumped ? 6 : 8, pyLine: jumped ? 4 : 6 });
+    }
+    steps[steps.length - 1].final = true;
+    return steps;
+  }
+
+  function renderLongestSubstring(s) {
+    const chars = s.split('');
+    return (stage, step) => {
+      stage.innerHTML = `
+        ${cellsRow(chars,
+          (v, i) => step.final ? (i >= step.l && i <= step.r ? 'match' : 'dim') : (i >= step.l && i <= step.r ? 'seen' : (i > step.r ? '' : 'dim')),
+          (v, i) => i === step.l ? 'L' : i === step.r ? 'R' : '')}
+        <div class="viz-panels">
+          <div class="viz-panel"><div class="viz-counter">${step.best}<span class="viz-counter-label">longest so far</span></div></div>
+        </div>`;
+    };
+  }
+
+  // ── P3: Permutation in String — fixed window frequency match ────────────
+  function traceCheckInclusion(s1, s2) {
+    const need = new Map();
+    for (const c of s1) need.set(c, (need.get(c) ?? 0) + 1);
+    const win = new Map();
+    for (let i = 0; i < s1.length; i++) win.set(s2[i], (win.get(s2[i]) ?? 0) + 1);
+    const mapsEqual = (a, b) => a.size === b.size && [...a].every(([k, v]) => b.get(k) === v);
+    const steps = [{ i: s1.length - 1, win: Object.fromEntries(win), match: mapsEqual(need, win),
+      note: `Initial window s2[0..${s1.length - 1}]="${s2.slice(0, s1.length)}".`, line: 7, pyLine: 5 }];
+    if (mapsEqual(need, win)) {
+      steps.push({ i: s1.length - 1, win: Object.fromEntries(win), match: true, final: true, stop: true,
+        note: 'Window matches need → true.', line: 8, pyLine: 6 });
+      return steps;
+    }
+    for (let i = s1.length; i < s2.length; i++) {
+      win.set(s2[i], (win.get(s2[i]) ?? 0) + 1);
+      const outC = s2[i - s1.length];
+      win.set(outC, win.get(outC) - 1);
+      if (win.get(outC) === 0) win.delete(outC);
+      const match = mapsEqual(need, win);
+      steps.push({ i, win: Object.fromEntries(win), match, final: match, stop: match,
+        note: `slide: +'${s2[i]}' −'${outC}' → window="${s2.slice(i - s1.length + 1, i + 1)}"${match ? ' → matches need → true!' : ''}`,
+        line: match ? 12 : 11, pyLine: match ? 11 : 9 });
+      if (match) return steps;
+    }
+    steps.push({ i: s2.length - 1, win: Object.fromEntries(win), match: false, final: true, note: 'No matching window found → false.', line: 14, pyLine: 12 });
+    return steps;
+  }
+
+  function renderCheckInclusion(s2, s1Len) {
+    const chars = s2.split('');
+    return (stage, step) => {
+      const l = step.i - s1Len + 1;
+      stage.innerHTML = `
+        ${cellsRow(chars, (v, i) => i >= l && i <= step.i ? (step.match ? 'match' : 'seen') : (step.final ? 'dim' : ''), (v, i) => i === l ? 'L' : i === step.i ? 'R' : '')}
+        <div class="viz-panels">
+          <div class="viz-panel"><div class="viz-panel-lbl">window freq</div>${chips(Object.entries(step.win).map(([k, v]) => `${k}:${v}`))}</div>
+        </div>`;
+    };
+  }
+
+  // ── P4: Longest Repeating Character Replacement ─────────────────────────
+  function traceCharacterReplacement(s, k) {
+    const freq = new Map();
+    let l = 0, maxFreq = 0, best = 0;
+    const steps = [{ l, r: -1, maxFreq, best, note: 'Start — l=0, maxFreq=0, best=0.', line: 4, pyLine: 2 }];
+    for (let r = 0; r < s.length; r++) {
+      freq.set(s[r], (freq.get(s[r]) ?? 0) + 1);
+      maxFreq = Math.max(maxFreq, freq.get(s[r]));
+      let shrunk = false;
+      if ((r - l + 1) - maxFreq > k) {
+        freq.set(s[l], freq.get(s[l]) - 1);
+        l++;
+        shrunk = true;
+      }
+      best = Math.max(best, r - l + 1);
+      steps.push({ l, r, maxFreq, best, shrunk,
+        note: `r=${r} ('${s[r]}'): maxFreq=${maxFreq}, window="${s.slice(l, r + 1)}" (len ${r - l + 1})${shrunk ? ' — too many replacements, shrink l' : ''} → best=${best}.`,
+        line: shrunk ? 8 : 11, pyLine: shrunk ? 7 : 8 });
+    }
+    steps[steps.length - 1].final = true;
+    return steps;
+  }
+
+  function renderCharacterReplacement(s) {
+    const chars = s.split('');
+    return (stage, step) => {
+      stage.innerHTML = `
+        ${cellsRow(chars,
+          (v, i) => step.final ? (i >= step.l && i <= step.r ? 'match' : 'dim') : (i >= step.l && i <= step.r ? 'seen' : (i > step.r ? '' : 'dim')),
+          (v, i) => i === step.l ? 'L' : i === step.r ? 'R' : '')}
+        <div class="viz-panels">
+          <div class="viz-panel"><div class="viz-panel-lbl">maxFreq</div><div class="viz-counter" style="font-size:20px">${step.maxFreq}</div></div>
+          <div class="viz-panel"><div class="viz-counter">${step.best}<span class="viz-counter-label">best so far</span></div></div>
+        </div>`;
+    };
+  }
+
+  // ── P5: Sliding Window Maximum — monotonic deque ────────────────────────
+  function traceMaxSlidingWindow(nums, k) {
+    const deque = [];
+    const res = [];
+    const steps = [{ r: -1, deque: [], res: [], note: 'Start — deque = [].', line: 2, pyLine: 3 }];
+    for (let r = 0; r < nums.length; r++) {
+      let expired = false;
+      if (deque.length && deque[0] === r - k) { deque.shift(); expired = true; }
+      let popped = 0;
+      while (deque.length && nums[deque[deque.length - 1]] <= nums[r]) { deque.pop(); popped++; }
+      deque.push(r);
+      let addedToRes = false;
+      if (r >= k - 1) { res.push(nums[deque[0]]); addedToRes = true; }
+      steps.push({ r, deque: [...deque], res: [...res],
+        note: `r=${r} (val=${nums[r]})${expired ? ': drop expired front index' : ''}${popped ? `, pop ${popped} smaller from back` : ''}, push ${r}.${addedToRes ? ` window max = ${nums[deque[0]]}.` : ''}`,
+        line: addedToRes ? 10 : 9, pyLine: addedToRes ? 8 : 7 });
+    }
+    steps[steps.length - 1].final = true;
+    return steps;
+  }
+
+  function renderMaxSlidingWindow(nums) {
+    return (stage, step) => {
+      stage.innerHTML = `
+        ${cellsRow(nums, (v, i) => step.final ? 'dim' : (i === step.r ? 'cur' : (step.deque.includes(i) ? 'seen' : 'dim')), (v, i) => i === step.deque[0] ? 'max' : '')}
+        <div class="viz-panels">
+          <div class="viz-panel"><div class="viz-panel-lbl">deque (indices)</div>${chips(step.deque)}</div>
+          <div class="viz-panel"><div class="viz-panel-lbl">result</div>${chips(step.res, ' new')}</div>
+        </div>`;
+    };
+  }
+
+  // ── Attach everything once the elements exist in the DOM ────────────────
+  const p1Nums = [1, 12, -5, -6, 50, 3], p1K = 4;
+  mountVisualizer('viz-sw-p1', traceMaxAverage(p1Nums, p1K), withCode('sw-p1', renderMaxAverage(p1Nums)));
+
+  mountVisualizer('viz-sw-p2', traceLongestSubstring('abcabcbb'), withCode('sw-p2', renderLongestSubstring('abcabcbb')));
+
+  const p3S1 = 'ab', p3S2 = 'eidbaooo';
+  mountVisualizer('viz-sw-p3', traceCheckInclusion(p3S1, p3S2), withCode('sw-p3', renderCheckInclusion(p3S2, p3S1.length)));
+
+  mountVisualizer('viz-sw-p4', traceCharacterReplacement('AABABBA', 1), withCode('sw-p4', renderCharacterReplacement('AABABBA')));
+
+  const p5Nums = [1, 3, -1, -3, 5, 3, 6, 7], p5K = 3;
+  mountVisualizer('viz-sw-p5', traceMaxSlidingWindow(p5Nums, p5K), withCode('sw-p5', renderMaxSlidingWindow(p5Nums)));
+}

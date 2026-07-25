@@ -1,5 +1,7 @@
 // Section: linkedlist
 // Auto-extracted from index.html
+import { autoWrapCodeLines, cellsRow, chips, withCode, mountVisualizer } from '../components/viz-kit.js';
+
 const _html_linkedlist = String.raw`
 <div id="sec-linkedlist" class="section">
 <div class="sec-header"><div class="sec-meta"><span class="sec-badge dsa">Linear · 08</span></div><div class="sec-title">Linked Lists</div></div>
@@ -58,6 +60,7 @@ Dummy Node trick:
         prev, curr = curr, nxt
     <span class="py-kw">return</span> prev</pre></div>
 </div>
+<algo-visualizer id="viz-ll-p1" title="Three-Pointer Reversal — trace"></algo-visualizer>
 </problem-card>
 
 <problem-card num="P2" title="Detect Cycle in Linked List" difficulty="easy" tags="Fast/Slow,Floyd">
@@ -85,6 +88,7 @@ Dummy Node trick:
         <span class="py-kw">if</span> slow is fast: <span class="py-kw">return</span> <span class="py-kw">True</span>
     <span class="py-kw">return</span> <span class="py-kw">False</span></pre></div>
 </div>
+<algo-visualizer id="viz-ll-p2" title="Floyd's Fast/Slow — trace"></algo-visualizer>
 </problem-card>
 
 <problem-card num="P3" title="Merge Two Sorted Lists" difficulty="easy" tags="Dummy Node,Merge">
@@ -116,6 +120,7 @@ Dummy Node trick:
     cur.next = l1 <span class="py-kw">or</span> l2
     <span class="py-kw">return</span> dummy.next</pre></div>
 </div>
+<algo-visualizer id="viz-ll-p3" title="Dummy Head Merge — trace"></algo-visualizer>
 </problem-card>
 
 <problem-card num="P4" title="Remove Nth Node From End" difficulty="medium" tags="Fast/Slow,One Pass">
@@ -142,6 +147,7 @@ Dummy Node trick:
     slow.next = slow.next.next
     <span class="py-kw">return</span> dummy.next</pre></div>
 </div>
+<algo-visualizer id="viz-ll-p4" title="Gap of N Pointers — trace"></algo-visualizer>
 </problem-card>
 
 <problem-card num="P5" title="Merge K Sorted Lists" difficulty="hard" tags="Heap,Divide & Conquer">
@@ -176,16 +182,195 @@ Dummy Node trick:
         <span class="py-kw">if</span> node.next: heapq.heappush(heap, (node.next.val, i, node.next))
     <span class="py-kw">return</span> dummy.next</pre></div>
 </div>
+<algo-visualizer id="viz-ll-p5" title="Pairwise Divide &amp; Conquer — trace"></algo-visualizer>
 </problem-card>
 </div></div></div>
 `;
 
 (function() {
   const main = document.getElementById('main');
+  let section;
   if (main) {
     const wrapper = document.createElement('div');
     wrapper.innerHTML = _html_linkedlist.trim();
-    const section = wrapper.firstElementChild;
+    section = wrapper.firstElementChild;
     if (section) main.appendChild(section);
   }
+  if (section) autoWrapCodeLines(section);
+  wireVisualizers();
 })();
+
+// ── Visualizer wiring — traces + renderers for the Linked List problems ─────
+// Lists are represented as plain value arrays; pointers are tracked as array
+// indices so the shared cellsRow/chips helpers can render them directly.
+function wireVisualizers() {
+  // ── P1: Reverse Linked List — 3-pointer iterative ───────────────────────
+  function traceReverseList(vals) {
+    const steps = [{ prevIdx: -1, currIdx: 0, reversed: [], note: 'Start — prev=null, curr=head.', line: 2, pyLine: 2 }];
+    const reversed = [];
+    for (let i = 0; i < vals.length; i++) {
+      reversed.unshift(vals[i]);
+      steps.push({ prevIdx: i, currIdx: i + 1, reversed: [...reversed],
+        note: `curr=${vals[i]}: save next, curr.next→prev, prev=curr, curr=next.`, line: 6, pyLine: 5 });
+    }
+    steps[steps.length - 1].final = true;
+    return steps;
+  }
+
+  function renderReverseList(vals) {
+    return (stage, step) => {
+      stage.innerHTML = `
+        <div class="viz-panel-lbl">original list</div>
+        ${cellsRow(vals,
+          (v, i) => step.final ? 'dim' : (i === step.prevIdx ? 'cur' : (i === step.currIdx ? 'cur2' : (i < step.prevIdx ? 'dim' : ''))),
+          (v, i) => i === step.prevIdx ? 'P' : i === step.currIdx ? 'C' : '')}
+        <div class="viz-panel-lbl" style="margin-top:10px">reversed so far</div>
+        ${chips(step.reversed, ' new')}`;
+    };
+  }
+
+  // ── P2: Detect Cycle — Floyd's fast/slow ────────────────────────────────
+  function traceHasCycle(vals, cycleStart) {
+    const next = i => (i + 1 < vals.length ? i + 1 : cycleStart);
+    let slow = 0, fast = 0;
+    const steps = [{ slow, fast, note: 'Start — slow=fast=head.', line: 2, pyLine: 2 }];
+    while (true) {
+      slow = next(slow);
+      fast = next(next(fast));
+      if (slow === fast) {
+        steps.push({ slow, fast, found: true, final: true, stop: true, note: `slow and fast meet at value ${vals[slow]} → cycle detected → true.`, line: 6, pyLine: 5 });
+        return steps;
+      }
+      steps.push({ slow, fast, note: `slow→${vals[slow]}, fast→${vals[fast]} (no meet yet).`, line: 5, pyLine: 4 });
+    }
+  }
+
+  function renderHasCycle(vals) {
+    return (stage, step) => {
+      stage.innerHTML = cellsRow(vals,
+        (v, i) => {
+          if (step.found && i === step.slow) return 'match';
+          if (i === step.slow) return 'cur';
+          if (i === step.fast) return 'cur2';
+          return '';
+        },
+        (v, i) => i === step.slow && i === step.fast ? 'S=F' : i === step.slow ? 'S' : i === step.fast ? 'F' : '');
+    };
+  }
+
+  // ── P3: Merge Two Sorted Lists — dummy head merge ───────────────────────
+  function traceMergeTwoLists(l1, l2) {
+    let i = 0, j = 0;
+    const result = [];
+    const steps = [{ i, j, result: [...result], note: 'Start — cur=dummy.', line: 3, pyLine: 2 }];
+    while (i < l1.length && j < l2.length) {
+      if (l1[i] <= l2[j]) {
+        result.push(l1[i]);
+        steps.push({ i: i + 1, j, result: [...result], note: `l1[${i}]=${l1[i]} ≤ l2[${j}]=${l2[j]} → take from l1.`, line: 5, pyLine: 4 });
+        i++;
+      } else {
+        result.push(l2[j]);
+        steps.push({ i, j: j + 1, result: [...result], note: `l1[${i}]=${l1[i]} > l2[${j}]=${l2[j]} → take from l2.`, line: 6, pyLine: 5 });
+        j++;
+      }
+    }
+    const remainder = i < l1.length ? l1.slice(i) : l2.slice(j);
+    result.push(...remainder);
+    steps.push({ i: l1.length, j: l2.length, result: [...result], final: true,
+      note: `Attach remainder [${remainder.join(',')}]. Done.`, line: 9, pyLine: 7 });
+    return steps;
+  }
+
+  function renderMergeTwoLists(l1, l2) {
+    return (stage, step) => {
+      stage.innerHTML = `
+        <div class="viz-panel-lbl">l1</div>
+        ${cellsRow(l1, (v, i) => step.final ? 'dim' : (i === step.i ? 'cur' : (i < step.i ? 'dim' : '')))}
+        <div class="viz-panel-lbl" style="margin-top:8px">l2</div>
+        ${cellsRow(l2, (v, i) => step.final ? 'dim' : (i === step.j ? 'cur2' : (i < step.j ? 'dim' : '')))}
+        <div class="viz-panel-lbl" style="margin-top:8px">merged result</div>
+        ${chips(step.result, ' new')}`;
+    };
+  }
+
+  // ── P4: Remove Nth Node From End — gap-of-n two pointers ────────────────
+  function traceRemoveNth(vals, n) {
+    let fast = n, slow = -1;
+    const steps = [{ fast, slow, note: `Start — fast is ${n} ahead of slow (advanced ${n + 1} steps from a dummy head).`, line: 4, pyLine: 3 }];
+    while (fast < vals.length) {
+      fast++; slow++;
+      steps.push({ fast, slow, note: `advance both → fast=${fast < vals.length ? vals[fast] : 'null'}, slow=${vals[slow]}.`, line: 5, pyLine: 4 });
+    }
+    const removedIdx = slow + 1;
+    const removedVal = vals[removedIdx];
+    const result = [...vals];
+    result.splice(removedIdx, 1);
+    steps.push({ fast, slow, removedIdx, removedVal, result, final: true,
+      note: `slow.next.next skips the node (value ${removedVal}) → result [${result.join(',')}].`, line: 6, pyLine: 5 });
+    return steps;
+  }
+
+  function renderRemoveNth(vals) {
+    return (stage, step) => {
+      stage.innerHTML = `
+        ${cellsRow(vals,
+          (v, i) => {
+            if (step.final) return i === step.removedIdx ? 'dup' : 'dim';
+            if (i === step.fast && i === step.slow) return 'match';
+            if (i === step.fast) return 'cur2';
+            if (i === step.slow) return 'cur';
+            return '';
+          },
+          (v, i) => i === step.slow ? 'S' : (i === step.fast ? 'F' : ''))}
+        ${step.final ? `<div class="viz-panels" style="margin-top:8px"><div class="viz-panel"><div class="viz-panel-lbl">result</div>${chips(step.result)}</div></div>` : ''}`;
+    };
+  }
+
+  // ── P5: Merge K Sorted Lists — pairwise divide & conquer ────────────────
+  // The Python solution uses a min-heap instead (a different algorithm), so
+  // pyLine stays null throughout — there's no equivalent line to highlight.
+  function traceMergeKLists(lists) {
+    const mergeTwo = (a, b) => {
+      const res = []; let i = 0, j = 0;
+      while (i < a.length && j < b.length) res.push(a[i] <= b[j] ? a[i++] : b[j++]);
+      return [...res, ...a.slice(i), ...b.slice(j)];
+    };
+    let curr = lists.map(l => [...l]);
+    const steps = [{ lists: curr.map(l => [...l]), note: `Start — ${curr.length} lists.`, line: 2, pyLine: null }];
+    let round = 1;
+    while (curr.length > 1) {
+      const merged = [];
+      const pairs = [];
+      for (let i = 0; i < curr.length; i += 2) {
+        const b = curr[i + 1];
+        merged.push(b !== undefined ? mergeTwo(curr[i], b) : curr[i]);
+        pairs.push(b !== undefined ? `[${curr[i].join(',')}]+[${b.join(',')}]` : `[${curr[i].join(',')}] (odd one out)`);
+      }
+      curr = merged;
+      steps.push({ lists: curr.map(l => [...l]), note: `round ${round}: merge ${pairs.join(', ')} → ${curr.length} list(s) left.`, line: 7, pyLine: null });
+      round++;
+    }
+    steps[steps.length - 1].final = true;
+    return steps;
+  }
+
+  function renderMergeKLists() {
+    return (stage, step) => {
+      const rows = step.lists.map((l, idx) => `<div style="display:flex;align-items:center;gap:8px"><span class="viz-panel-lbl" style="width:50px;margin:0">list ${idx}</span>${chips(l)}</div>`).join('');
+      stage.innerHTML = `<div style="display:flex;flex-direction:column;gap:6px">${rows}</div>`;
+    };
+  }
+
+  // ── Attach everything once the elements exist in the DOM ────────────────
+  mountVisualizer('viz-ll-p1', traceReverseList([1, 2, 3, 4, 5]), withCode('ll-p1', renderReverseList([1, 2, 3, 4, 5])));
+
+  const p2Vals = [1, 2, 3, 4];
+  mountVisualizer('viz-ll-p2', traceHasCycle(p2Vals, 1), withCode('ll-p2', renderHasCycle(p2Vals)));
+
+  const p3L1 = [1, 2, 4], p3L2 = [1, 3, 4];
+  mountVisualizer('viz-ll-p3', traceMergeTwoLists(p3L1, p3L2), withCode('ll-p3', renderMergeTwoLists(p3L1, p3L2)));
+
+  mountVisualizer('viz-ll-p4', traceRemoveNth([1, 2, 3, 4, 5], 2), withCode('ll-p4', renderRemoveNth([1, 2, 3, 4, 5])));
+
+  mountVisualizer('viz-ll-p5', traceMergeKLists([[1, 4, 5], [1, 3, 4], [2, 6]]), withCode('ll-p5', renderMergeKLists()));
+}

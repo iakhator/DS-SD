@@ -1,5 +1,7 @@
 // Section: arrays
 // Auto-extracted from index.html
+import { autoWrapCodeLines, cellsRow, chips, withCode, mountVisualizer } from '../components/viz-kit.js';
+
 const _html_arrays = String.raw`
 <div id="sec-arrays" class="section">
 <div class="sec-header"><div class="sec-meta"><span class="sec-badge dsa">Foundation · 02</span></div><div class="sec-title">Arrays & Strings</div></div>
@@ -128,6 +130,7 @@ String concatenation in loop:
         <span class="py-kw">if</span> comp <span class="py-kw">in</span> seen: <span class="py-kw">return</span> [seen[comp], i]
         seen[n] = i</pre></div>
 </div>
+<algo-visualizer id="viz-arr-p1" title="One-pass HashMap — trace"></algo-visualizer>
 </problem-card>
 
 <problem-card num="P2" title="Best Time to Buy and Sell Stock" difficulty="easy" tags="Array,Greedy">
@@ -154,6 +157,7 @@ String concatenation in loop:
         max_profit = <span class="py-fn">max</span>(max_profit, p - min_price)
     <span class="py-kw">return</span> max_profit</pre></div>
 </div>
+<algo-visualizer id="viz-arr-p2" title="Track Running Min — trace"></algo-visualizer>
 </problem-card>
 
 <problem-card num="P3" title="Product of Array Except Self" difficulty="medium" tags="Prefix,No Division">
@@ -190,6 +194,7 @@ String concatenation in loop:
         right *= nums[i]
     <span class="py-kw">return</span> out</pre></div>
 </div>
+<algo-visualizer id="viz-arr-p3" title="Left × Right Prefix Products — trace"></algo-visualizer>
 </problem-card>
 
 <problem-card num="P4" title="Maximum Subarray (Kadane's)" difficulty="medium" tags="DP,Kadane">
@@ -217,6 +222,7 @@ String concatenation in loop:
         best = <span class="py-fn">max</span>(best, curr)
     <span class="py-kw">return</span> best</pre></div>
 </div>
+<algo-visualizer id="viz-arr-p4" title="Kadane's Algorithm — trace"></algo-visualizer>
 </problem-card>
 
 <problem-card num="P5" title="Trapping Rain Water" difficulty="hard" tags="Two Pointers,Prefix Max">
@@ -258,6 +264,7 @@ String concatenation in loop:
             water += max_r - height[r]; r -= <span class="py-num">1</span>
     <span class="py-kw">return</span> water</pre></div>
 </div>
+<algo-visualizer id="viz-arr-p5" title="Two Pointer — trace"></algo-visualizer>
 </problem-card>
 
 </div></div></div>
@@ -265,10 +272,174 @@ String concatenation in loop:
 
 (function() {
   const main = document.getElementById('main');
+  let section;
   if (main) {
     const wrapper = document.createElement('div');
     wrapper.innerHTML = _html_arrays.trim();
-    const section = wrapper.firstElementChild;
+    section = wrapper.firstElementChild;
     if (section) main.appendChild(section);
   }
+  if (section) autoWrapCodeLines(section);
+  wireVisualizers();
 })();
+
+// ── Visualizer wiring — traces + renderers for the Arrays & Strings problems ─
+function wireVisualizers() {
+  // ── P1: Two Sum — one-pass hashmap ──────────────────────────────────────
+  function traceTwoSum(nums, target) {
+    const map = new Map();
+    const steps = [{ i: -1, map: {}, note: 'Start — map = {}.', line: 2, pyLine: 2 }];
+    for (let i = 0; i < nums.length; i++) {
+      const comp = target - nums[i];
+      if (map.has(comp)) {
+        steps.push({ i, map: Object.fromEntries(map), found: [map.get(comp), i], final: true, stop: true,
+          note: `i=${i}: need ${comp}, found at index ${map.get(comp)} → return [${map.get(comp)}, ${i}].`, line: 5, pyLine: 5 });
+        return steps;
+      }
+      map.set(nums[i], i);
+      steps.push({ i, map: Object.fromEntries(map), note: `i=${i}: need ${comp}, not in map. Add ${nums[i]}→${i}.`, line: 6, pyLine: 6 });
+    }
+    steps.push({ i: -1, map: Object.fromEntries(map), final: true, note: 'No solution found.', line: 8, pyLine: 6 });
+    return steps;
+  }
+
+  function renderTwoSum(nums) {
+    return (stage, step) => {
+      const mapChips = Object.entries(step.map).map(([val, idx]) => `${val}:${idx}`);
+      stage.innerHTML = `
+        ${cellsRow(nums,
+          (v, i) => step.found ? (step.found.includes(i) ? 'match' : 'dim') : (i === step.i ? 'cur' : ''),
+          (v, i) => i === step.i ? 'i' : '')}
+        <div class="viz-panels">
+          <div class="viz-panel"><div class="viz-panel-lbl">map (val:idx)</div>${chips(mapChips)}</div>
+        </div>`;
+    };
+  }
+
+  // ── P2: Best Time to Buy/Sell Stock — track running min ────────────────
+  function traceMaxProfit(prices) {
+    let minPrice = Infinity, maxProfit = 0;
+    const steps = [{ i: -1, minPrice, maxProfit, note: 'Start — minPrice=∞, maxProfit=0.', line: 2, pyLine: 2 }];
+    prices.forEach((p, i) => {
+      minPrice = Math.min(minPrice, p);
+      maxProfit = Math.max(maxProfit, p - minPrice);
+      steps.push({ i, minPrice, maxProfit,
+        note: `i=${i}: price=${p} → minPrice=${minPrice}, profit=${p}-${minPrice}=${p - minPrice} → maxProfit=${maxProfit}.`, line: 5, pyLine: 5 });
+    });
+    steps[steps.length - 1].final = true;
+    return steps;
+  }
+
+  function renderMaxProfit(prices) {
+    return (stage, step) => {
+      stage.innerHTML = `
+        ${cellsRow(prices, (v, i) => step.final ? 'dim' : (i === step.i ? 'cur' : ''), (v, i) => i === step.i ? 'i' : '')}
+        <div class="viz-panels">
+          <div class="viz-panel"><div class="viz-panel-lbl">min price</div><div class="viz-counter" style="font-size:20px">${step.minPrice === Infinity ? '∞' : step.minPrice}</div></div>
+          <div class="viz-panel"><div class="viz-counter">${step.maxProfit}<span class="viz-counter-label">max profit</span></div></div>
+        </div>`;
+    };
+  }
+
+  // ── P3: Product of Array Except Self — left pass then right pass ───────
+  function traceProductExceptSelf(nums) {
+    const n = nums.length;
+    const out = new Array(n).fill(1);
+    const steps = [{ phase: 'start', i: -1, out: [...out], note: 'Start — out filled with 1s.', line: 3, pyLine: 3 }];
+    for (let i = 1; i < n; i++) {
+      out[i] = out[i - 1] * nums[i - 1];
+      steps.push({ phase: 'left', i, out: [...out], note: `left pass i=${i}: out[${i}] = out[${i - 1}]×nums[${i - 1}] = ${out[i]}.`, line: 5, pyLine: 5 });
+    }
+    let right = 1;
+    for (let i = n - 1; i >= 0; i--) {
+      out[i] *= right;
+      steps.push({ phase: 'right', i, out: [...out], note: `right pass i=${i}: out[${i}] ×= running right(${right}) → ${out[i]}.`, line: 9, pyLine: 8 });
+      right *= nums[i];
+    }
+    steps.push({ phase: 'done', i: -1, out: [...out], final: true, note: `Done. Result = [${out.join(',')}].`, line: 12, pyLine: 10 });
+    return steps;
+  }
+
+  function renderProductExceptSelf(nums) {
+    return (stage, step) => {
+      stage.innerHTML = `
+        <div class="viz-panel-lbl">nums</div>
+        ${cellsRow(nums, (v, i) => i === step.i ? (step.phase === 'left' ? 'cur' : 'cur2') : '')}
+        <div class="viz-panel-lbl" style="margin-top:12px">out</div>
+        ${cellsRow(step.out, (v, i) => step.final ? 'match' : (i === step.i ? (step.phase === 'left' ? 'cur' : 'cur2') : ''))}`;
+    };
+  }
+
+  // ── P4: Maximum Subarray — Kadane's algorithm ───────────────────────────
+  function traceMaxSubArray(nums) {
+    let curr = nums[0], best = nums[0];
+    const steps = [{ i: 0, curr, best, note: `Start i=0: curr=best=${nums[0]}.`, line: 2, pyLine: 2 }];
+    for (let i = 1; i < nums.length; i++) {
+      const restart = nums[i] > curr + nums[i];
+      curr = Math.max(nums[i], curr + nums[i]);
+      best = Math.max(best, curr);
+      steps.push({ i, curr, best, note: `i=${i}: ${restart ? `restart at ${nums[i]}` : `extend by ${nums[i]}`} → curr=${curr}, best=${best}.`, line: 4, pyLine: 4 });
+    }
+    steps[steps.length - 1].final = true;
+    return steps;
+  }
+
+  function renderMaxSubArray(nums) {
+    return (stage, step) => {
+      stage.innerHTML = `
+        ${cellsRow(nums, (v, i) => step.final ? 'dim' : (i === step.i ? 'cur' : ''), (v, i) => i === step.i ? 'i' : '')}
+        <div class="viz-panels">
+          <div class="viz-panel"><div class="viz-panel-lbl">curr</div><div class="viz-counter" style="font-size:20px">${step.curr}</div></div>
+          <div class="viz-panel"><div class="viz-counter">${step.best}<span class="viz-counter-label">best so far</span></div></div>
+        </div>`;
+    };
+  }
+
+  // ── P5: Trapping Rain Water — two pointers with running maxes ──────────
+  function traceTrap(height) {
+    let l = 0, r = height.length - 1, maxL = 0, maxR = 0, water = 0;
+    const steps = [{ l, r, maxL, maxR, water, note: `Start l=0, r=${r}.`, line: 3, pyLine: 3 }];
+    while (l < r) {
+      if (height[l] < height[r]) {
+        maxL = Math.max(maxL, height[l]);
+        water += maxL - height[l];
+        steps.push({ l, r, maxL, maxR, water, side: 'L', note: `l=${l}: maxL=${maxL}, water += ${maxL - height[l]} → water=${water}.`, line: 8, pyLine: 7 });
+        l++;
+      } else {
+        maxR = Math.max(maxR, height[r]);
+        water += maxR - height[r];
+        steps.push({ l, r, maxL, maxR, water, side: 'R', note: `r=${r}: maxR=${maxR}, water += ${maxR - height[r]} → water=${water}.`, line: 12, pyLine: 10 });
+        r--;
+      }
+    }
+    steps.push({ l, r, maxL, maxR, water, final: true, note: `Done. Total water trapped = ${water}.`, line: 16, pyLine: 11 });
+    return steps;
+  }
+
+  function renderTrap(height) {
+    return (stage, step) => {
+      stage.innerHTML = `
+        ${cellsRow(height, (v, i) => step.final ? 'dim' : (i === step.l ? 'cur' : i === step.r ? 'cur2' : ''), (v, i) => i === step.l ? 'L' : i === step.r ? 'R' : '')}
+        <div class="viz-panels">
+          <div class="viz-panel"><div class="viz-panel-lbl">maxL / maxR</div><div class="viz-counter" style="font-size:18px">${step.maxL} / ${step.maxR}</div></div>
+          <div class="viz-panel"><div class="viz-counter">${step.water}<span class="viz-counter-label">water trapped</span></div></div>
+        </div>`;
+    };
+  }
+
+  // ── Attach everything once the elements exist in the DOM ────────────────
+  const p1Nums = [2, 7, 11, 15], p1Target = 9;
+  mountVisualizer('viz-arr-p1', traceTwoSum(p1Nums, p1Target), withCode('arr-p1', renderTwoSum(p1Nums)));
+
+  const p2Prices = [7, 1, 5, 3, 6, 4];
+  mountVisualizer('viz-arr-p2', traceMaxProfit(p2Prices), withCode('arr-p2', renderMaxProfit(p2Prices)));
+
+  const p3Nums = [1, 2, 3, 4];
+  mountVisualizer('viz-arr-p3', traceProductExceptSelf(p3Nums), withCode('arr-p3', renderProductExceptSelf(p3Nums)));
+
+  const p4Nums = [-2, 1, -3, 4, -1, 2, 1, -5, 4];
+  mountVisualizer('viz-arr-p4', traceMaxSubArray(p4Nums), withCode('arr-p4', renderMaxSubArray(p4Nums)));
+
+  const p5Height = [0, 1, 0, 2, 1, 0, 1, 3, 2, 1, 2, 1];
+  mountVisualizer('viz-arr-p5', traceTrap(p5Height), withCode('arr-p5', renderTrap(p5Height)));
+}

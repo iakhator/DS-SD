@@ -1,5 +1,7 @@
 // Section: twopointers
 // Auto-extracted from index.html
+import { autoWrapCodeLines, cellsRow, chips, withCode, mountVisualizer } from '../components/viz-kit.js';
+
 const _html_twopointers = String.raw`
 <div id="sec-twopointers" class="section">
 <div class="sec-header"><div class="sec-meta"><span class="sec-badge dsa">Patterns · 04</span></div><div class="sec-title">Two Pointers</div></div>
@@ -49,6 +51,7 @@ const _html_twopointers = String.raw`
         <span class="py-kw">elif</span> s &lt; target:  l += <span class="py-num">1</span>
         <span class="py-kw">else</span>:             r -= <span class="py-num">1</span></pre></div>
 </div>
+<algo-visualizer id="viz-tp-p1" title="Opposite-end Pointers — trace"></algo-visualizer>
 </problem-card>
 
 <problem-card num="P2" title="Valid Palindrome" difficulty="easy" tags="String,Opposite Ends">
@@ -75,6 +78,7 @@ const _html_twopointers = String.raw`
     cleaned = [c.lower() <span class="py-kw">for</span> c <span class="py-kw">in</span> s <span class="py-kw">if</span> c.isalnum()]
     <span class="py-kw">return</span> cleaned == cleaned[::-<span class="py-num">1</span>]</pre></div>
 </div>
+<algo-visualizer id="viz-tp-p2" title="Skip Non-Alphanumeric — trace"></algo-visualizer>
 </problem-card>
 
 <problem-card num="P3" title="3Sum" difficulty="medium" tags="Sort,Two Pointers">
@@ -121,6 +125,7 @@ const _html_twopointers = String.raw`
             <span class="py-kw">else</span>: r -= <span class="py-num">1</span>
     <span class="py-kw">return</span> res</pre></div>
 </div>
+<algo-visualizer id="viz-tp-p3" title="Sort + Three Pointers — trace"></algo-visualizer>
 </problem-card>
 
 <problem-card num="P4" title="Container With Most Water" difficulty="medium" tags="Greedy,Two Pointers">
@@ -148,6 +153,7 @@ const _html_twopointers = String.raw`
         <span class="py-kw">else</span>: r -= <span class="py-num">1</span>
     <span class="py-kw">return</span> max_w</pre></div>
 </div>
+<algo-visualizer id="viz-tp-p4" title="Move Shorter Side — trace"></algo-visualizer>
 </problem-card>
 
 <problem-card num="P5" title="Minimum Window Substring" difficulty="hard" tags="Sliding Window,HashMap">
@@ -193,6 +199,7 @@ const _html_twopointers = String.raw`
             l += <span class="py-num">1</span>
     <span class="py-kw">return</span> <span class="py-str">""</span> <span class="py-kw">if</span> best == <span class="py-fn">float</span>(<span class="py-str">'inf'</span>) <span class="py-kw">else</span> s[best_l:best_r+<span class="py-num">1</span>]</pre></div>
 </div>
+<algo-visualizer id="viz-tp-p5" title="Expand/Shrink Window — trace"></algo-visualizer>
 </problem-card>
 
 </div></div></div>
@@ -200,10 +207,219 @@ const _html_twopointers = String.raw`
 
 (function() {
   const main = document.getElementById('main');
+  let section;
   if (main) {
     const wrapper = document.createElement('div');
     wrapper.innerHTML = _html_twopointers.trim();
-    const section = wrapper.firstElementChild;
+    section = wrapper.firstElementChild;
     if (section) main.appendChild(section);
   }
+  if (section) autoWrapCodeLines(section);
+  wireVisualizers();
 })();
+
+// ── Visualizer wiring — traces + renderers for the Two Pointers problems ────
+function wireVisualizers() {
+  // ── P1: Two Sum II — opposite-end pointers ──────────────────────────────
+  function traceTwoSumII(numbers, target) {
+    let l = 0, r = numbers.length - 1;
+    const steps = [{ l, r, note: `Start l=0, r=${r}.`, line: 2, pyLine: 2 }];
+    while (l < r) {
+      const sum = numbers[l] + numbers[r];
+      if (sum === target) {
+        steps.push({ l, r, sum, found: true, final: true, stop: true,
+          note: `l=${l}, r=${r}: ${numbers[l]}+${numbers[r]}=${sum} === target → found! (indices ${l + 1}, ${r + 1})`, line: 5, pyLine: 5 });
+        return steps;
+      } else if (sum < target) {
+        steps.push({ l, r, sum, note: `l=${l}, r=${r}: ${numbers[l]}+${numbers[r]}=${sum} < target → move l forward.`, line: 6, pyLine: 6 });
+        l++;
+      } else {
+        steps.push({ l, r, sum, note: `l=${l}, r=${r}: ${numbers[l]}+${numbers[r]}=${sum} > target → move r backward.`, line: 7, pyLine: 7 });
+        r--;
+      }
+    }
+    steps.push({ l, r, final: true, note: 'Pointers crossed without a match.', line: 9, pyLine: 7 });
+    return steps;
+  }
+
+  function renderTwoSumII(numbers, target) {
+    return (stage, step) => {
+      stage.innerHTML = `
+        ${cellsRow(numbers,
+          (v, i) => step.final && step.found ? (i === step.l || i === step.r ? 'match' : 'dim') : (i === step.l ? 'cur' : i === step.r ? 'cur2' : ''),
+          (v, i) => i === step.l ? 'L' : i === step.r ? 'R' : '')}
+        <div class="viz-panels">
+          <div class="viz-panel"><div class="viz-panel-lbl">l + r</div><div class="viz-counter" style="font-size:20px">${step.sum ?? '—'}</div></div>
+          <div class="viz-panel"><div class="viz-panel-lbl">target</div><div class="viz-counter" style="font-size:20px">${target}</div></div>
+        </div>`;
+    };
+  }
+
+  // ── P2: Valid Palindrome — skip non-alphanumeric ────────────────────────
+  // Python's solution filters+reverses the string instead of walking pointers,
+  // so there's no equivalent Python line for each JS pointer step — pyLine
+  // stays null and the Python panel simply shows no highlight.
+  function traceIsPalindrome(s) {
+    const isAlnum = c => /[a-z0-9]/i.test(c);
+    let l = 0, r = s.length - 1;
+    const steps = [{ l, r, note: `Start l=0, r=${r}.`, line: 3, pyLine: null }];
+    while (l < r) {
+      while (l < r && !isAlnum(s[l])) l++;
+      while (l < r && !isAlnum(s[r])) r--;
+      if (s[l].toLowerCase() !== s[r].toLowerCase()) {
+        steps.push({ l, r, mismatch: true, final: true, stop: true, note: `'${s[l]}' vs '${s[r]}' → mismatch → false.`, line: 7, pyLine: null });
+        return steps;
+      }
+      steps.push({ l, r, note: `'${s[l].toLowerCase()}' == '${s[r].toLowerCase()}' → match, move inward.`, line: 8, pyLine: null });
+      l++; r--;
+    }
+    steps.push({ l, r, final: true, note: 'Pointers crossed — all characters matched → true.', line: 10, pyLine: null });
+    return steps;
+  }
+
+  function renderIsPalindrome(s) {
+    const chars = s.split('');
+    return (stage, step) => {
+      stage.innerHTML = `
+        ${cellsRow(chars,
+          (v, i) => step.final && !step.mismatch ? 'dim' : (i === step.l ? (step.mismatch ? 'dup' : 'cur') : i === step.r ? (step.mismatch ? 'dup' : 'cur2') : ''),
+          (v, i) => i === step.l ? 'L' : i === step.r ? 'R' : '')}`;
+    };
+  }
+
+  // ── P3: 3Sum — sort + fixed i + two pointers ────────────────────────────
+  function traceThreeSum(input) {
+    const nums = [...input].sort((a, b) => a - b);
+    const res = [];
+    const foundChips = () => res.map(t => `[${t.join(',')}]`);
+    const steps = [{ i: -1, l: -1, r: -1, nums: [...nums], found: foundChips(), note: `Sorted: [${nums.join(',')}]`, line: 2, pyLine: 2 }];
+    for (let i = 0; i < nums.length - 2; i++) {
+      if (i > 0 && nums[i] === nums[i - 1]) {
+        steps.push({ i, l: -1, r: -1, nums: [...nums], found: foundChips(), note: `i=${i}: nums[i]=${nums[i]} duplicate of previous i — skip.`, line: 5, pyLine: 4 });
+        continue;
+      }
+      let l = i + 1, r = nums.length - 1;
+      while (l < r) {
+        const sum = nums[i] + nums[l] + nums[r];
+        if (sum === 0) {
+          res.push([nums[i], nums[l], nums[r]]);
+          steps.push({ i, l, r, nums: [...nums], found: foundChips(), note: `i=${i}, l=${l}, r=${r}: sum=0 → triplet [${nums[i]},${nums[l]},${nums[r]}] found.`, line: 10, pyLine: 9 });
+          while (l < r && nums[l] === nums[l + 1]) l++;
+          while (l < r && nums[r] === nums[r - 1]) r--;
+          l++; r--;
+        } else if (sum < 0) {
+          steps.push({ i, l, r, nums: [...nums], found: foundChips(), note: `i=${i}, l=${l}, r=${r}: sum=${sum} < 0 → move l forward.`, line: 14, pyLine: 13 });
+          l++;
+        } else {
+          steps.push({ i, l, r, nums: [...nums], found: foundChips(), note: `i=${i}, l=${l}, r=${r}: sum=${sum} > 0 → move r backward.`, line: 15, pyLine: 14 });
+          r--;
+        }
+      }
+    }
+    steps.push({ i: -1, l: -1, r: -1, nums: [...nums], found: foundChips(), final: true, note: `Done. ${res.length} triplet(s) found.`, line: 18, pyLine: 15 });
+    return steps;
+  }
+
+  function renderThreeSum() {
+    return (stage, step) => {
+      stage.innerHTML = `
+        ${cellsRow(step.nums,
+          (v, idx) => step.final ? 'dim' : (idx === step.i ? 'cur3' : idx === step.l ? 'cur' : idx === step.r ? 'cur2' : ''),
+          (v, idx) => idx === step.i ? 'i' : idx === step.l ? 'L' : idx === step.r ? 'R' : '')}
+        <div class="viz-panels">
+          <div class="viz-panel"><div class="viz-panel-lbl">triplets found (${step.found.length})</div>${chips(step.found, ' new')}</div>
+        </div>`;
+    };
+  }
+
+  // ── P4: Container With Most Water — greedy move shorter side ────────────
+  function traceMaxArea(height) {
+    let l = 0, r = height.length - 1, max = 0;
+    const steps = [{ l, r, max, note: `Start l=0, r=${r}.`, line: 2, pyLine: 2 }];
+    while (l < r) {
+      const area = Math.min(height[l], height[r]) * (r - l);
+      max = Math.max(max, area);
+      const moveL = height[l] < height[r];
+      steps.push({ l, r, area, max,
+        note: `l=${l}, r=${r}: area=min(${height[l]},${height[r]})×${r - l}=${area} → max=${max}. ${moveL ? 'height[l] is shorter → move l forward.' : 'height[r] is shorter (or equal) → move r backward.'}`,
+        line: 5, pyLine: moveL ? 5 : 6 });
+      if (moveL) l++; else r--;
+    }
+    steps.push({ l, r, max, final: true, note: `Done. Max area = ${max}.`, line: 7, pyLine: 7 });
+    return steps;
+  }
+
+  function renderMaxArea(height) {
+    return (stage, step) => {
+      stage.innerHTML = `
+        ${cellsRow(height, (v, i) => step.final ? 'dim' : (i === step.l ? 'cur' : i === step.r ? 'cur2' : ''), (v, i) => i === step.l ? 'L' : i === step.r ? 'R' : '')}
+        <div class="viz-panels">
+          <div class="viz-panel"><div class="viz-panel-lbl">this area</div><div class="viz-counter" style="font-size:20px">${step.area ?? '—'}</div></div>
+          <div class="viz-panel"><div class="viz-counter">${step.max}<span class="viz-counter-label">max so far</span></div></div>
+        </div>`;
+    };
+  }
+
+  // ── P5: Minimum Window Substring — expand/shrink window ─────────────────
+  function traceMinWindow(s, t) {
+    const need = new Map();
+    for (const c of t) need.set(c, (need.get(c) ?? 0) + 1);
+    const window = new Map();
+    let formed = 0, required = need.size, l = 0;
+    let best = [Infinity, 0, 0];
+    const bestStr = () => best[0] === Infinity ? '—' : s.slice(best[1], best[2] + 1);
+    const steps = [{ l, r: -1, formed, required, bestStr: bestStr(),
+      note: `need = {${[...need].map(([k, v]) => `${k}:${v}`).join(', ')}}`, line: 5, pyLine: 5 }];
+    for (let r = 0; r < s.length; r++) {
+      window.set(s[r], (window.get(s[r]) ?? 0) + 1);
+      if (need.has(s[r]) && window.get(s[r]) === need.get(s[r])) formed++;
+      steps.push({ l, r, formed, required, bestStr: bestStr(), note: `expand r=${r} ('${s[r]}'): formed=${formed}/${required}.`, line: 9, pyLine: 9 });
+      while (formed === required) {
+        if (r - l + 1 < best[0]) {
+          best = [r - l + 1, l, r];
+          steps.push({ l, r, formed, required, bestStr: bestStr(), note: `window "${s.slice(l, r + 1)}" is valid and shortest so far → new best.`, line: 11, pyLine: 11 });
+        }
+        window.set(s[l], window.get(s[l]) - 1);
+        if (need.has(s[l]) && window.get(s[l]) < need.get(s[l])) formed--;
+        l++;
+        steps.push({ l, r, formed, required, bestStr: bestStr(), note: `shrink: drop '${s[l - 1]}', l → ${l}. formed=${formed}/${required}.`, line: 14, pyLine: 14 });
+      }
+    }
+    steps.push({ l, r: s.length - 1, formed, required, bestStr: bestStr(), final: true, note: `Done. Minimum window = "${bestStr()}".`, line: 17, pyLine: 15 });
+    return steps;
+  }
+
+  function renderMinWindow(s) {
+    const chars = s.split('');
+    return (stage, step) => {
+      stage.innerHTML = `
+        ${cellsRow(chars,
+          (v, i) => {
+            if (i === step.l && i === step.r) return 'match';
+            if (i === step.l) return 'cur';
+            if (i === step.r) return 'cur2';
+            if (step.r >= 0 && i > step.l && i < step.r) return 'seen';
+            return 'dim';
+          },
+          (v, i) => i === step.l ? 'L' : i === step.r ? 'R' : '')}
+        <div class="viz-panels">
+          <div class="viz-panel"><div class="viz-panel-lbl">formed</div><div class="viz-counter" style="font-size:20px">${step.formed}/${step.required}</div></div>
+          <div class="viz-panel"><div class="viz-panel-lbl">best window</div><div class="viz-counter" style="font-size:18px">"${step.bestStr}"</div></div>
+        </div>`;
+    };
+  }
+
+  // ── Attach everything once the elements exist in the DOM ────────────────
+  const tp1Nums = [2, 7, 11, 15], tp1Target = 9;
+  mountVisualizer('viz-tp-p1', traceTwoSumII(tp1Nums, tp1Target), withCode('tp-p1', renderTwoSumII(tp1Nums, tp1Target)));
+
+  const tp2Str = 'A man, a plan, a canal: Panama';
+  mountVisualizer('viz-tp-p2', traceIsPalindrome(tp2Str), withCode('tp-p2', renderIsPalindrome(tp2Str)));
+
+  mountVisualizer('viz-tp-p3', traceThreeSum([-1, 0, 1, 2, -1, -4]), withCode('tp-p3', renderThreeSum()));
+
+  const tp4Height = [1, 8, 6, 2, 5, 4, 8, 3, 7];
+  mountVisualizer('viz-tp-p4', traceMaxArea(tp4Height), withCode('tp-p4', renderMaxArea(tp4Height)));
+
+  mountVisualizer('viz-tp-p5', traceMinWindow('ADOBECODEBANC', 'ABC'), withCode('tp-p5', renderMinWindow('ADOBECODEBANC')));
+}

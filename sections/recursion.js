@@ -1,5 +1,7 @@
 // Section: recursion
 // Auto-extracted from index.html
+import { autoWrapCodeLines, chips, withCode, mountVisualizer } from '../components/viz-kit.js';
+
 const _html_recursion = String.raw`
 <div id="sec-recursion" class="section">
 <div class="sec-header"><div class="sec-meta"><span class="sec-badge dsa">Recursion · 10</span></div><div class="sec-title">Recursion & Backtracking</div></div>
@@ -105,6 +107,7 @@ Backtracking template:
             used[i] = <span class="py-kw">False</span>; path.pop()
     <span class="py-fn">bt</span>([]); <span class="py-kw">return</span> result</pre></div>
 </div>
+<algo-visualizer id="viz-rec-p1" title="Choose / Recurse / Unchoose — trace"></algo-visualizer>
 </problem-card>
 
 <problem-card num="P2" title="Combination Sum" difficulty="medium" tags="Backtracking,Reuse">
@@ -139,6 +142,7 @@ Backtracking template:
             path.pop()
     <span class="py-fn">bt</span>(<span class="py-num">0</span>, [], target); <span class="py-kw">return</span> result</pre></div>
 </div>
+<algo-visualizer id="viz-rec-p2" title="Backtracking with Reuse — trace"></algo-visualizer>
 </problem-card>
 
 <problem-card num="P3" title="Letter Combinations of Phone Number" difficulty="medium" tags="Backtracking,String">
@@ -167,6 +171,7 @@ Backtracking template:
         <span class="py-kw">for</span> c <span class="py-kw">in</span> m[digits[i]]: <span class="py-fn">bt</span>(i+<span class="py-num">1</span>, path+c)
     <span class="py-fn">bt</span>(<span class="py-num">0</span>, <span class="py-str">''</span>); <span class="py-kw">return</span> result</pre></div>
 </div>
+<algo-visualizer id="viz-rec-p3" title="Backtracking (Immutable Path) — trace"></algo-visualizer>
 </problem-card>
 
 <problem-card num="P4" title="Generate Parentheses" difficulty="medium" tags="Backtracking,Pruning">
@@ -196,6 +201,7 @@ Backtracking template:
         <span class="py-kw">if</span> cl &lt; op: <span class="py-fn">bt</span>(s+<span class="py-str">')'</span>, op, cl+<span class="py-num">1</span>)
     <span class="py-fn">bt</span>(<span class="py-str">''</span>, <span class="py-num">0</span>, <span class="py-num">0</span>); <span class="py-kw">return</span> result</pre></div>
 </div>
+<algo-visualizer id="viz-rec-p4" title="Constrained Backtracking — trace"></algo-visualizer>
 </problem-card>
 
 <problem-card num="P5" title="N-Queens" difficulty="hard" tags="Backtracking,Classic">
@@ -235,16 +241,202 @@ Backtracking template:
             cols.discard(col); d1.discard(row-col); d2.discard(row+col); board[row][col]=<span class="py-str">'.'</span>
     <span class="py-fn">bt</span>(<span class="py-num">0</span>); <span class="py-kw">return</span> result</pre></div>
 </div>
+<algo-visualizer id="viz-rec-p5" title="Row-by-Row Backtracking — trace"></algo-visualizer>
 </problem-card>
 </div></div></div>
 `;
 
 (function() {
   const main = document.getElementById('main');
+  let section;
   if (main) {
     const wrapper = document.createElement('div');
     wrapper.innerHTML = _html_recursion.trim();
-    const section = wrapper.firstElementChild;
+    section = wrapper.firstElementChild;
     if (section) main.appendChild(section);
   }
+  if (section) autoWrapCodeLines(section);
+  wireVisualizers();
 })();
+
+// ── Visualizer wiring — traces + renderers for the Recursion/Backtracking problems ─
+function wireVisualizers() {
+  const pathAndResults = (path, result) => `
+    <div class="viz-panel-lbl">current path</div>
+    ${chips(path, ' new')}
+    <div class="viz-panel-lbl" style="margin-top:10px">solutions found (${result.length})</div>
+    ${chips(result)}`;
+
+  // ── P1: Generate All Permutations ───────────────────────────────────────
+  function tracePermute(nums) {
+    const result = [];
+    const used = new Array(nums.length).fill(false);
+    const path = [];
+    const steps = [{ path: [], result: [], note: 'Start — path=[].', line: 3, pyLine: 3 }];
+    function bt() {
+      if (path.length === nums.length) {
+        result.push([...path]);
+        steps.push({ path: [...path], result: result.map(p => `[${p.join(',')}]`), note: `path length = n → solution: [${path.join(',')}].`, line: 4, pyLine: 4 });
+        return;
+      }
+      for (let i = 0; i < nums.length; i++) {
+        if (used[i]) continue;
+        used[i] = true; path.push(nums[i]);
+        steps.push({ path: [...path], result: result.map(p => `[${p.join(',')}]`), note: `choose nums[${i}]=${nums[i]}.`, line: 7, pyLine: 7 });
+        bt();
+        used[i] = false; path.pop();
+        steps.push({ path: [...path], result: result.map(p => `[${p.join(',')}]`), note: `backtrack: unchoose ${nums[i]}.`, line: 9, pyLine: 9 });
+      }
+    }
+    bt();
+    steps[steps.length - 1].final = true;
+    return steps;
+  }
+
+  function renderPermute() {
+    return (stage, step) => { stage.innerHTML = pathAndResults(step.path, step.result); };
+  }
+
+  // ── P2: Combination Sum — backtracking with reuse ───────────────────────
+  function traceCombinationSum(candidates, target) {
+    const sorted = [...candidates].sort((a, b) => a - b);
+    const result = [];
+    const curr = [];
+    const steps = [{ curr: [], result: [], note: `Start — candidates sorted: [${sorted.join(',')}].`, line: 12, pyLine: 2 }];
+    function bt(start, remaining) {
+      if (remaining === 0) {
+        result.push([...curr]);
+        steps.push({ curr: [...curr], result: result.map(p => `[${p.join(',')}]`), note: `remaining=0 → solution: [${curr.join(',')}].`, line: 4, pyLine: 4 });
+        return;
+      }
+      for (let i = start; i < sorted.length; i++) {
+        if (sorted[i] > remaining) break;
+        curr.push(sorted[i]);
+        steps.push({ curr: [...curr], result: result.map(p => `[${p.join(',')}]`), note: `choose ${sorted[i]} → remaining=${remaining - sorted[i]}.`, line: 7, pyLine: 7 });
+        bt(i, remaining - sorted[i]);
+        curr.pop();
+        steps.push({ curr: [...curr], result: result.map(p => `[${p.join(',')}]`), note: `backtrack: unchoose ${sorted[i]}.`, line: 9, pyLine: 9 });
+      }
+    }
+    bt(0, target);
+    steps[steps.length - 1].final = true;
+    return steps;
+  }
+
+  function renderCombinationSum() {
+    return (stage, step) => { stage.innerHTML = pathAndResults(step.curr, step.result); };
+  }
+
+  // ── P3: Letter Combinations of Phone Number ─────────────────────────────
+  function traceLetterCombinations(digits) {
+    const map = { '2': 'abc', '3': 'def', '4': 'ghi', '5': 'jkl', '6': 'mno', '7': 'pqrs', '8': 'tuv', '9': 'wxyz' };
+    const result = [];
+    const steps = [{ path: '', result: [], note: 'Start — path="".', line: 4, pyLine: 4 }];
+    function bt(i, path) {
+      if (i === digits.length) {
+        result.push(path);
+        steps.push({ path, result: [...result], note: `i === digits.length → solution: "${path}".`, line: 6, pyLine: 6 });
+        return;
+      }
+      for (const c of map[digits[i]]) {
+        steps.push({ path: path + c, result: [...result], note: `digit '${digits[i]}' → try '${c}' → path="${path + c}".`, line: 7, pyLine: 7 });
+        bt(i + 1, path + c);
+      }
+    }
+    bt(0, '');
+    steps[steps.length - 1].final = true;
+    return steps;
+  }
+
+  function renderLetterCombinations() {
+    return (stage, step) => {
+      stage.innerHTML = `
+        <div class="viz-panels"><div class="viz-panel"><div class="viz-panel-lbl">current path</div><div class="viz-counter" style="font-size:22px">"${step.path}"</div></div></div>
+        <div class="viz-panel-lbl" style="margin-top:10px">combinations found (${step.result.length})</div>
+        ${chips(step.result)}`;
+    };
+  }
+
+  // ── P4: Generate Parentheses — constrained backtracking ─────────────────
+  function traceGenerateParenthesis(n) {
+    const result = [];
+    const steps = [{ s: '', result: [], note: 'Start — s="".', line: 2, pyLine: 2 }];
+    function bt(s, open, close) {
+      if (s.length === 2 * n) {
+        result.push(s);
+        steps.push({ s, result: [...result], note: `length === 2n → solution: "${s}".`, line: 4, pyLine: 4 });
+        return;
+      }
+      if (open < n) {
+        steps.push({ s: s + '(', result: [...result], note: `open=${open}<${n} → add '(' → "${s}(".`, line: 5, pyLine: 5 });
+        bt(s + '(', open + 1, close);
+      }
+      if (close < open) {
+        steps.push({ s: s + ')', result: [...result], note: `close=${close}<open=${open} → add ')' → "${s})".`, line: 6, pyLine: 6 });
+        bt(s + ')', open, close + 1);
+      }
+    }
+    bt('', 0, 0);
+    steps[steps.length - 1].final = true;
+    return steps;
+  }
+
+  function renderGenerateParenthesis() {
+    return (stage, step) => {
+      stage.innerHTML = `
+        <div class="viz-panels"><div class="viz-panel"><div class="viz-panel-lbl">current string</div><div class="viz-counter" style="font-size:22px">"${step.s}"</div></div></div>
+        <div class="viz-panel-lbl" style="margin-top:10px">combinations found (${step.result.length})</div>
+        ${chips(step.result)}`;
+    };
+  }
+
+  // ── P5: N-Queens — row-by-row backtracking ──────────────────────────────
+  function traceSolveNQueens(n) {
+    const cols = new Set(), diag1 = new Set(), diag2 = new Set();
+    const board = Array.from({ length: n }, () => new Array(n).fill('.'));
+    const result = [];
+    const steps = [{ board: board.map(r => [...r]), result: [], row: -1, col: -1, note: `Start — ${n}×${n} board empty.`, line: 3, pyLine: 3 }];
+    function bt(row) {
+      if (row === n) {
+        result.push(board.map(r => r.join('')));
+        steps.push({ board: board.map(r => [...r]), result: [...result], row: -1, col: -1, note: `row===n → valid board found (solution ${result.length}).`, line: 5, pyLine: 5 });
+        return;
+      }
+      for (let col = 0; col < n; col++) {
+        if (cols.has(col) || diag1.has(row - col) || diag2.has(row + col)) continue;
+        cols.add(col); diag1.add(row - col); diag2.add(row + col);
+        board[row][col] = 'Q';
+        steps.push({ board: board.map(r => [...r]), result: [...result], row, col, note: `place Q at (${row},${col}).`, line: 9, pyLine: 8 });
+        bt(row + 1);
+        board[row][col] = '.';
+        cols.delete(col); diag1.delete(row - col); diag2.delete(row + col);
+        steps.push({ board: board.map(r => [...r]), result: [...result], row, col, note: `backtrack: remove Q at (${row},${col}).`, line: 11, pyLine: 10 });
+      }
+    }
+    bt(0);
+    steps[steps.length - 1].final = true;
+    return steps;
+  }
+
+  function renderSolveNQueens(n) {
+    const cellSize = n <= 6 ? 44 : 32;
+    return (stage, step) => {
+      const boardHtml = `<div style="display:inline-grid;grid-template-columns:repeat(${n},${cellSize}px);gap:3px">${
+        step.board.map((r, ri) => r.map((v, ci) => {
+          const isQueen = v === 'Q';
+          const isChanged = step.row === ri && step.col === ci;
+          const cls = isQueen ? 'match' : (isChanged ? 'dup' : '');
+          return `<div class="viz-cell${cls ? ' ' + cls : ''}" style="min-width:${cellSize}px;height:${cellSize}px">${isQueen ? '♛' : ''}</div>`;
+        }).join('')).join('')
+      }</div>`;
+      stage.innerHTML = `${boardHtml}<div class="viz-panels" style="margin-top:10px"><div class="viz-panel"><div class="viz-counter">${step.result.length}<span class="viz-counter-label">solutions found</span></div></div></div>`;
+    };
+  }
+
+  // ── Attach everything once the elements exist in the DOM ────────────────
+  mountVisualizer('viz-rec-p1', tracePermute([1, 2, 3]), withCode('rec-p1', renderPermute()));
+  mountVisualizer('viz-rec-p2', traceCombinationSum([2, 3, 6, 7], 7), withCode('rec-p2', renderCombinationSum()));
+  mountVisualizer('viz-rec-p3', traceLetterCombinations('23'), withCode('rec-p3', renderLetterCombinations()));
+  mountVisualizer('viz-rec-p4', traceGenerateParenthesis(3), withCode('rec-p4', renderGenerateParenthesis()));
+  mountVisualizer('viz-rec-p5', traceSolveNQueens(4), withCode('rec-p5', renderSolveNQueens(4)));
+}

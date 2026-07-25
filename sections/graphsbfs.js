@@ -1,5 +1,7 @@
 // Section: graphsbfs
 // Auto-extracted from index.html
+import { autoWrapCodeLines, chips, withCode, mountVisualizer, renderGrid } from '../components/viz-kit.js';
+
 const _html_graphsbfs = String.raw`
 <div id="sec-graphsbfs" class="section">
 <div class="sec-header"><div class="sec-meta"><span class="sec-badge dsa">Graphs · 14</span></div><div class="sec-title">Graphs — BFS</div></div>
@@ -93,6 +95,7 @@ Grid as Graph:
             <span class="py-kw">if</span> grid[r][c] == <span class="py-str">'1'</span>: <span class="py-fn">dfs</span>(r, c); count += <span class="py-num">1</span>
     <span class="py-kw">return</span> count</pre></div>
 </div>
+<algo-visualizer id="viz-gbfs-p1" title="BFS Flood Fill — trace"></algo-visualizer>
 </problem-card>
 
 <problem-card num="P2" title="Rotting Oranges (Multi-source BFS)" difficulty="medium" tags="Multi-source BFS,Grid">
@@ -142,6 +145,7 @@ Grid as Graph:
         time += <span class="py-num">1</span>
     <span class="py-kw">return</span> time <span class="py-kw">if</span> fresh==<span class="py-num">0</span> <span class="py-kw">else</span> -<span class="py-num">1</span></pre></div>
 </div>
+<algo-visualizer id="viz-gbfs-p2" title="Multi-source BFS — trace"></algo-visualizer>
 </problem-card>
 
 <problem-card num="P5" title="Word Ladder" difficulty="hard" tags="BFS,Word Graph">
@@ -181,16 +185,152 @@ Grid as Graph:
                     visited.add(nxt); q.append((nxt, steps+<span class="py-num">1</span>))
     <span class="py-kw">return</span> <span class="py-num">0</span></pre></div>
 </div>
+<algo-visualizer id="viz-gbfs-p5" title="BFS Word Ladder — trace"></algo-visualizer>
 </problem-card>
 </div></div></div>
 `;
 
 (function() {
   const main = document.getElementById('main');
+  let section;
   if (main) {
     const wrapper = document.createElement('div');
     wrapper.innerHTML = _html_graphsbfs.trim();
-    const section = wrapper.firstElementChild;
+    section = wrapper.firstElementChild;
     if (section) main.appendChild(section);
   }
+  if (section) autoWrapCodeLines(section);
+  wireVisualizers();
 })();
+
+// ── Visualizer wiring — traces + renderers for the Graphs/BFS problems ──────
+function wireVisualizers() {
+  // ── P1: Number of Islands — BFS flood fill ──────────────────────────────
+  function traceNumIslands(grid) {
+    const g = grid.map(row => [...row]);
+    const R = g.length, C = g[0].length;
+    const dirs = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+    let count = 0;
+    const steps = [{ grid: g.map(r => [...r]), count, note: 'Start scanning grid for land.', line: 2, pyLine: 6 }];
+    function bfs(r, c) {
+      const q = [[r, c]];
+      g[r][c] = '0';
+      steps.push({ grid: g.map(row => [...row]), count, cur: [r, c], note: `found land at (${r},${c}) → start flood fill.`, line: 5, pyLine: 9 });
+      while (q.length) {
+        const [r2, c2] = q.shift();
+        for (const [dr, dc] of dirs) {
+          const nr = r2 + dr, nc = c2 + dc;
+          if (nr >= 0 && nr < R && nc >= 0 && nc < C && g[nr][nc] === '1') {
+            g[nr][nc] = '0';
+            q.push([nr, nc]);
+            steps.push({ grid: g.map(row => [...row]), count, cur: [nr, nc], note: `flood into (${nr},${nc}), mark visited.`, line: 11, pyLine: 5 });
+          }
+        }
+      }
+    }
+    for (let r = 0; r < R; r++) for (let c = 0; c < C; c++) if (g[r][c] === '1') { bfs(r, c); count++; }
+    steps.push({ grid: g.map(r => [...r]), count, final: true, note: `Done. Total islands = ${count}.`, line: 16, pyLine: 10 });
+    return steps;
+  }
+
+  function renderNumIslands() {
+    return (stage, step) => {
+      stage.innerHTML = `
+        ${renderGrid(step.grid, (v, r, c) => {
+          if (step.cur && !step.final && r === step.cur[0] && c === step.cur[1]) return 'cur';
+          return v === '1' ? 'seen' : '';
+        })}
+        <div class="viz-panels" style="margin-top:8px"><div class="viz-panel"><div class="viz-counter">${step.count}<span class="viz-counter-label">islands found</span></div></div></div>`;
+    };
+  }
+
+  // ── P2: Rotting Oranges — multi-source BFS ──────────────────────────────
+  function traceOrangesRotting(grid) {
+    const g = grid.map(row => [...row]);
+    const R = g.length, C = g[0].length;
+    let q = [], fresh = 0;
+    for (let r = 0; r < R; r++) for (let c = 0; c < C; c++) { if (g[r][c] === 2) q.push([r, c]); else if (g[r][c] === 1) fresh++; }
+    const dirs = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+    let time = 0;
+    const steps = [{ grid: g.map(r => [...r]), time, fresh, note: `Start — ${q.length} rotten, ${fresh} fresh.`, line: 3, pyLine: 4 }];
+    while (q.length && fresh > 0) {
+      const size = q.length;
+      time++;
+      for (let i = 0; i < size; i++) {
+        const [r, c] = q.shift();
+        for (const [dr, dc] of dirs) {
+          const nr = r + dr, nc = c + dc;
+          if (nr >= 0 && nr < R && nc >= 0 && nc < C && g[nr][nc] === 1) {
+            g[nr][nc] = 2; fresh--; q.push([nr, nc]);
+          }
+        }
+      }
+      steps.push({ grid: g.map(r => [...r]), time, fresh, note: `minute ${time}: infect neighbors → ${fresh} fresh remaining.`, line: 15, pyLine: 16 });
+    }
+    steps.push({ grid: g.map(r => [...r]), time, fresh, final: true, result: fresh === 0 ? time : -1,
+      note: `Done. ${fresh === 0 ? `All rotten in ${time} minutes.` : 'Not all reachable → -1.'}`, line: 19, pyLine: 17 });
+    return steps;
+  }
+
+  function renderOrangesRotting() {
+    return (stage, step) => {
+      stage.innerHTML = `
+        ${renderGrid(step.grid, v => v === 2 ? 'dup' : (v === 1 ? 'seen' : ''))}
+        <div class="viz-panels" style="margin-top:8px">
+          <div class="viz-panel"><div class="viz-panel-lbl">minute</div><div class="viz-counter" style="font-size:20px">${step.time}</div></div>
+          <div class="viz-panel"><div class="viz-panel-lbl">fresh left</div><div class="viz-counter" style="font-size:20px">${step.fresh}</div></div>
+          ${step.final ? `<div class="viz-panel"><div class="viz-counter">${step.result}<span class="viz-counter-label">minutes (or -1)</span></div></div>` : ''}
+        </div>`;
+    };
+  }
+
+  // ── P5: Word Ladder — BFS over one-letter transformations ──────────────
+  function traceLadderLength(begin, end, wordList) {
+    const words = new Set(wordList);
+    const q = [[begin, 1]];
+    const visited = new Set([begin]);
+    const steps = [{ queue: [`${begin}:1`], visited: [...visited], note: `Start — queue=[${begin}].`, line: 4, pyLine: 4 }];
+    while (q.length) {
+      const [word, dist] = q.shift();
+      if (word === end) {
+        steps.push({ queue: q.map(([w, d]) => `${w}:${d}`), visited: [...visited], final: true, stop: true,
+          note: `dequeue '${word}' === end → found in ${dist} steps!`, line: 7, pyLine: 7 });
+        return steps;
+      }
+      const added = [];
+      for (let i = 0; i < word.length; i++) {
+        for (let c = 97; c <= 122; c++) {
+          const next = word.slice(0, i) + String.fromCharCode(c) + word.slice(i + 1);
+          if (words.has(next) && !visited.has(next)) {
+            visited.add(next);
+            q.push([next, dist + 1]);
+            added.push(next);
+          }
+        }
+      }
+      steps.push({ queue: q.map(([w, d]) => `${w}:${d}`), visited: [...visited],
+        note: `dequeue '${word}' → try all one-letter changes → enqueue [${added.join(',')}].`, line: 11, pyLine: 12 });
+    }
+    steps.push({ queue: [], visited: [...visited], final: true, note: 'Queue exhausted — no transformation found → 0.', line: 15, pyLine: 13 });
+    return steps;
+  }
+
+  function renderLadderLength() {
+    return (stage, step) => {
+      stage.innerHTML = `
+        <div class="viz-panels">
+          <div class="viz-panel"><div class="viz-panel-lbl">queue (word:dist)</div>${chips(step.queue)}</div>
+          <div class="viz-panel"><div class="viz-panel-lbl">visited</div>${chips(step.visited)}</div>
+        </div>`;
+    };
+  }
+
+  // ── Attach everything once the elements exist in the DOM ────────────────
+  const p1Grid = [['1', '1', '0', '0'], ['1', '1', '0', '0'], ['0', '0', '1', '0'], ['0', '0', '0', '1']];
+  mountVisualizer('viz-gbfs-p1', traceNumIslands(p1Grid), withCode('gbfs-p1', renderNumIslands()));
+
+  const p2Grid = [[2, 1, 1], [1, 1, 0], [0, 1, 1]];
+  mountVisualizer('viz-gbfs-p2', traceOrangesRotting(p2Grid), withCode('gbfs-p2', renderOrangesRotting()));
+
+  mountVisualizer('viz-gbfs-p5', traceLadderLength('hit', 'cog', ['hot', 'dot', 'dog', 'lot', 'log', 'cog']), withCode('gbfs-p5', renderLadderLength()));
+}

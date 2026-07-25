@@ -1,5 +1,7 @@
 // Section: greedy
 // Auto-extracted from index.html
+import { autoWrapCodeLines, cellsRow, chips, withCode, mountVisualizer } from '../components/viz-kit.js';
+
 const _html_greedy = String.raw`
 <div id="sec-greedy" class="section">
 <div class="sec-header"><div class="sec-meta"><span class="sec-badge dsa">Advanced · 19</span></div><div class="sec-title">Greedy Algorithms</div></div>
@@ -38,6 +40,7 @@ const _html_greedy = String.raw`
         max_reach = <span class="py-fn">max</span>(max_reach, i + n)
     <span class="py-kw">return</span> <span class="py-kw">True</span></pre></div>
 </div>
+<algo-visualizer id="viz-gr-p1" title="Track Max Reach — trace"></algo-visualizer>
 </problem-card>
 
 <problem-card num="P2" title="Non-overlapping Intervals" difficulty="medium" tags="Sort + Greedy">
@@ -66,6 +69,7 @@ const _html_greedy = String.raw`
         <span class="py-kw">else</span>: prev_end = end
     <span class="py-kw">return</span> removed</pre></div>
 </div>
+<algo-visualizer id="viz-gr-p2" title="Sort by End — trace"></algo-visualizer>
 </problem-card>
 
 <problem-card num="P5" title="Merge Intervals" difficulty="medium" tags="Sort + Merge">
@@ -91,6 +95,7 @@ const _html_greedy = String.raw`
         <span class="py-kw">else</span>: res.append([s, e])
     <span class="py-kw">return</span> res</pre></div>
 </div>
+<algo-visualizer id="viz-gr-p5" title="Sort + Merge — trace"></algo-visualizer>
 </problem-card>
 
 <problem-card num="P3" title="Jump Game II — Minimum Jumps" difficulty="medium" tags="Greedy,BFS-like">
@@ -117,6 +122,7 @@ const _html_greedy = String.raw`
         <span class="py-kw">if</span> i == curr_end: jumps += <span class="py-num">1</span>; curr_end = farthest
     <span class="py-kw">return</span> jumps</pre></div>
 </div>
+<algo-visualizer id="viz-gr-p3" title="Greedy BFS Levels — trace"></algo-visualizer>
 </problem-card>
 
 <problem-card num="P4" title="Gas Station (Circular Tour)" difficulty="medium" tags="Greedy,Circular">
@@ -144,6 +150,7 @@ const _html_greedy = String.raw`
         <span class="py-kw">if</span> tank &lt; <span class="py-num">0</span>: start = i+<span class="py-num">1</span>; tank = <span class="py-num">0</span>
     <span class="py-kw">return</span> start <span class="py-kw">if</span> total >= <span class="py-num">0</span> <span class="py-kw">else</span> -<span class="py-num">1</span></pre></div>
 </div>
+<algo-visualizer id="viz-gr-p4" title="One-Pass Greedy — trace"></algo-visualizer>
 </problem-card>
 
 </div></div></div>
@@ -151,10 +158,155 @@ const _html_greedy = String.raw`
 
 (function() {
   const main = document.getElementById('main');
+  let section;
   if (main) {
     const wrapper = document.createElement('div');
     wrapper.innerHTML = _html_greedy.trim();
-    const section = wrapper.firstElementChild;
+    section = wrapper.firstElementChild;
     if (section) main.appendChild(section);
   }
+  if (section) autoWrapCodeLines(section);
+  wireVisualizers();
 })();
+
+// ── Visualizer wiring — traces + renderers for the Greedy problems ──────────
+function wireVisualizers() {
+  // ── P1: Jump Game — track max reach ─────────────────────────────────────
+  function traceCanJump(nums) {
+    let maxReach = 0;
+    const steps = [{ i: -1, maxReach, note: 'Start — maxReach=0.', line: 2, pyLine: 2 }];
+    for (let i = 0; i < nums.length; i++) {
+      if (i > maxReach) {
+        steps.push({ i, maxReach, final: true, stop: true, failed: true, note: `i=${i} > maxReach=${maxReach} → unreachable → false.`, line: 4, pyLine: 4 });
+        return steps;
+      }
+      maxReach = Math.max(maxReach, i + nums[i]);
+      steps.push({ i, maxReach, note: `i=${i} (jump ${nums[i]}): maxReach = max(prev, ${i}+${nums[i]}) = ${maxReach}.`, line: 5, pyLine: 5 });
+    }
+    steps.push({ i: nums.length, maxReach, final: true, note: 'Done. Reached the end → true.', line: 7, pyLine: 6 });
+    return steps;
+  }
+
+  function renderCanJump(nums) {
+    return (stage, step) => {
+      stage.innerHTML = `
+        ${cellsRow(nums, (v, idx) => {
+          if (idx === step.i) return step.failed ? 'dup' : 'cur';
+          return idx <= step.maxReach ? 'seen' : 'dim';
+        })}
+        <div class="viz-panels" style="margin-top:8px"><div class="viz-panel"><div class="viz-panel-lbl">max reach</div><div class="viz-counter" style="font-size:20px">${step.maxReach}</div></div></div>`;
+    };
+  }
+
+  // ── P2: Non-overlapping Intervals — sort by end ─────────────────────────
+  function traceEraseOverlap(intervals) {
+    const sorted = [...intervals].sort((a, b) => a[1] - b[1]);
+    let removed = 0, prevEnd = -Infinity;
+    const labels = sorted.map(iv => `[${iv.join(',')}]`);
+    const steps = [{ i: -1, removed, labels, note: `Sorted by end: ${labels.join(', ')}.`, line: 2, pyLine: 2 }];
+    sorted.forEach(([start, end], i) => {
+      const overlap = start < prevEnd;
+      if (overlap) { removed++; } else { prevEnd = end; }
+      steps.push({ i, removed, labels,
+        note: overlap ? `[${start},${end}]: start < prevEnd → overlap, remove. removed=${removed}.` : `[${start},${end}]: no overlap → keep, prevEnd=${end}.`,
+        line: overlap ? 5 : 6, pyLine: overlap ? 5 : 6 });
+    });
+    steps[steps.length - 1].final = true;
+    return steps;
+  }
+
+  function renderEraseOverlap() {
+    return (stage, step) => {
+      stage.innerHTML = `
+        <div class="viz-panel-lbl">sorted intervals</div>
+        ${chips(step.labels.map((iv, idx) => idx === step.i ? `▶ ${iv}` : iv))}
+        <div class="viz-panels" style="margin-top:8px"><div class="viz-panel"><div class="viz-counter">${step.removed}<span class="viz-counter-label">removed</span></div></div></div>`;
+    };
+  }
+
+  // ── P5: Merge Intervals — sort + merge ──────────────────────────────────
+  function traceMerge(intervals) {
+    const sorted = [...intervals].sort((a, b) => a[0] - b[0]);
+    const res = [[...sorted[0]]];
+    const steps = [{ res: res.map(iv => `[${iv.join(',')}]`), i: 0,
+      note: `Sorted by start: ${sorted.map(iv => `[${iv.join(',')}]`).join(', ')}. res=[[${sorted[0].join(',')}]].`, line: 3, pyLine: 2 }];
+    for (let i = 1; i < sorted.length; i++) {
+      const [s, e] = sorted[i];
+      const last = res[res.length - 1];
+      if (s <= last[1]) {
+        last[1] = Math.max(last[1], e);
+        steps.push({ res: res.map(iv => `[${iv.join(',')}]`), i, note: `[${s},${e}]: overlaps last [${last[0]},${last[1]}] → merge.`, line: 6, pyLine: 4 });
+      } else {
+        res.push([s, e]);
+        steps.push({ res: res.map(iv => `[${iv.join(',')}]`), i, note: `[${s},${e}]: no overlap → new interval.`, line: 7, pyLine: 5 });
+      }
+    }
+    steps[steps.length - 1].final = true;
+    return steps;
+  }
+
+  function renderMerge() {
+    return (stage, step) => {
+      stage.innerHTML = `<div class="viz-panel-lbl">merged result</div>${chips(step.res, ' new')}`;
+    };
+  }
+
+  // ── P3: Jump Game II — greedy BFS levels ────────────────────────────────
+  function traceJump(nums) {
+    let jumps = 0, currEnd = 0, farthest = 0;
+    const steps = [{ i: -1, jumps, currEnd, note: 'Start — jumps=0.', line: 2, pyLine: 2 }];
+    for (let i = 0; i < nums.length - 1; i++) {
+      farthest = Math.max(farthest, i + nums[i]);
+      let jumped = false;
+      if (i === currEnd) { jumps++; currEnd = farthest; jumped = true; }
+      steps.push({ i, jumps, currEnd,
+        note: `i=${i}: farthest=${farthest}.${jumped ? ` i reached currEnd → jump! jumps=${jumps}, new currEnd=${currEnd}.` : ''}`, line: jumped ? 5 : 4, pyLine: jumped ? 5 : 4 });
+    }
+    steps[steps.length - 1].final = true;
+    return steps;
+  }
+
+  function renderJump(nums) {
+    return (stage, step) => {
+      stage.innerHTML = `
+        ${cellsRow(nums, (v, idx) => step.final ? 'dim' : (idx === step.i ? 'cur' : (idx === step.currEnd ? 'seen' : '')), (v, idx) => idx === step.currEnd ? 'end' : '')}
+        <div class="viz-panels" style="margin-top:8px"><div class="viz-panel"><div class="viz-counter">${step.jumps}<span class="viz-counter-label">jumps so far</span></div></div></div>`;
+    };
+  }
+
+  // ── P4: Gas Station — one-pass greedy ───────────────────────────────────
+  function traceCanCompleteCircuit(gas, cost) {
+    let total = 0, tank = 0, start = 0;
+    const steps = [{ i: -1, tank, start, note: 'Start — total=tank=start=0.', line: 2, pyLine: 2 }];
+    for (let i = 0; i < gas.length; i++) {
+      const diff = gas[i] - cost[i];
+      total += diff; tank += diff;
+      let reset = false;
+      if (tank < 0) { start = i + 1; tank = 0; reset = true; }
+      steps.push({ i, tank, start, note: `station ${i}: gas-cost=${diff} → tank=${tank}${reset ? `, went negative → restart from ${start}` : ''}.`, line: reset ? 6 : 5, pyLine: reset ? 5 : 4 });
+    }
+    steps.push({ i: gas.length, tank, start, final: true, result: total >= 0 ? start : -1,
+      note: `Done. total=${total} → ${total >= 0 ? `start = ${start}` : 'impossible → -1'}.`, line: 8, pyLine: 6 });
+    return steps;
+  }
+
+  function renderCanCompleteCircuit(gas) {
+    return (stage, step) => {
+      stage.innerHTML = `
+        ${cellsRow(gas, (v, idx) => step.final ? (idx === step.start ? 'match' : 'dim') : (idx === step.i ? 'cur' : (idx < step.start ? 'dim' : '')))}
+        <div class="viz-panels" style="margin-top:8px">
+          <div class="viz-panel"><div class="viz-panel-lbl">tank</div><div class="viz-counter" style="font-size:20px">${step.tank}</div></div>
+          <div class="viz-panel"><div class="viz-panel-lbl">start candidate</div><div class="viz-counter" style="font-size:20px">${step.start}</div></div>
+        </div>`;
+    };
+  }
+
+  // ── Attach everything once the elements exist in the DOM ────────────────
+  mountVisualizer('viz-gr-p1', traceCanJump([2, 3, 1, 1, 4]), withCode('gr-p1', renderCanJump([2, 3, 1, 1, 4])));
+  mountVisualizer('viz-gr-p2', traceEraseOverlap([[1, 2], [2, 3], [3, 4], [1, 3]]), withCode('gr-p2', renderEraseOverlap()));
+  mountVisualizer('viz-gr-p5', traceMerge([[1, 3], [2, 6], [8, 10], [15, 18]]), withCode('gr-p5', renderMerge()));
+  mountVisualizer('viz-gr-p3', traceJump([2, 3, 1, 1, 4]), withCode('gr-p3', renderJump([2, 3, 1, 1, 4])));
+
+  const p4Gas = [1, 2, 3, 4, 5], p4Cost = [3, 4, 5, 1, 2];
+  mountVisualizer('viz-gr-p4', traceCanCompleteCircuit(p4Gas, p4Cost), withCode('gr-p4', renderCanCompleteCircuit(p4Gas)));
+}

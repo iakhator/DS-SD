@@ -1,5 +1,7 @@
 // Section: dp1d
 // Auto-extracted from index.html
+import { autoWrapCodeLines, cellsRow, chips, withCode, mountVisualizer } from '../components/viz-kit.js';
+
 const _html_dp1d = String.raw`
 <div id="sec-dp1d" class="section">
 <div class="sec-header"><div class="sec-meta"><span class="sec-badge dsa">DP · 17</span></div><div class="sec-title">DP — Classic 1D Problems</div></div>
@@ -32,6 +34,7 @@ const _html_dp1d = String.raw`
         a, b = b, cost[i] + <span class="py-fn">min</span>(a, b)
     <span class="py-kw">return</span> <span class="py-fn">min</span>(a, b)</pre></div>
 </div>
+<algo-visualizer id="viz-dp1d-p1" title="Rolling Min Cost — trace"></algo-visualizer>
 </problem-card>
 
 <problem-card num="P2" title="Decode Ways" difficulty="medium" tags="1D DP,String">
@@ -64,6 +67,7 @@ const _html_dp1d = String.raw`
         prev2, prev1 = prev1, curr
     <span class="py-kw">return</span> prev1</pre></div>
 </div>
+<algo-visualizer id="viz-dp1d-p2" title="1 or 2 Digit Decode — trace"></algo-visualizer>
 </problem-card>
 
 <problem-card num="P3" title="Maximum Product Subarray" difficulty="medium" tags="1D DP,Track Min+Max">
@@ -92,6 +96,7 @@ const _html_dp1d = String.raw`
         best = <span class="py-fn">max</span>(best, max_p)
     <span class="py-kw">return</span> best</pre></div>
 </div>
+<algo-visualizer id="viz-dp1d-p3" title="Track Min and Max — trace"></algo-visualizer>
 </problem-card>
 
 <problem-card num="P4" title="Word Break" difficulty="medium" tags="1D DP,String">
@@ -120,6 +125,7 @@ const _html_dp1d = String.raw`
             <span class="py-kw">if</span> dp[j] <span class="py-kw">and</span> s[j:i] <span class="py-kw">in</span> words: dp[i] = <span class="py-kw">True</span>; <span class="py-kw">break</span>
     <span class="py-kw">return</span> dp[<span class="py-fn">len</span>(s)]</pre></div>
 </div>
+<algo-visualizer id="viz-dp1d-p4" title="Segment DP — trace"></algo-visualizer>
 </problem-card>
 
 <problem-card num="P5" title="Partition Equal Subset Sum (0/1 Knapsack)" difficulty="hard" tags="0/1 Knapsack,BitSet">
@@ -151,16 +157,159 @@ const _html_dp1d = String.raw`
             dp[j] = dp[j] <span class="py-kw">or</span> dp[j-n]
     <span class="py-kw">return</span> dp[target]</pre></div>
 </div>
+<algo-visualizer id="viz-dp1d-p5" title="0/1 Knapsack — trace"></algo-visualizer>
 </problem-card>
 </div></div></div>
 `;
 
 (function() {
   const main = document.getElementById('main');
+  let section;
   if (main) {
     const wrapper = document.createElement('div');
     wrapper.innerHTML = _html_dp1d.trim();
-    const section = wrapper.firstElementChild;
+    section = wrapper.firstElementChild;
     if (section) main.appendChild(section);
   }
+  if (section) autoWrapCodeLines(section);
+  wireVisualizers();
 })();
+
+// ── Visualizer wiring — traces + renderers for the DP Classic 1D problems ───
+function wireVisualizers() {
+  // ── P1: Min Cost Climbing Stairs ─────────────────────────────────────────
+  function traceMinCostClimbingStairs(cost) {
+    let a = cost[0], b = cost[1];
+    const steps = [{ i: 1, a, b, note: `Start — a=cost[0]=${a}, b=cost[1]=${b}.`, line: 2, pyLine: 2 }];
+    for (let i = 2; i < cost.length; i++) {
+      const newB = cost[i] + Math.min(a, b);
+      [a, b] = [b, newB];
+      steps.push({ i, a, b, note: `i=${i}: cost[${i}]=${cost[i]} + min(a,b) → new pair (${a},${b}).`, line: 4, pyLine: 4 });
+    }
+    steps.push({ i: cost.length, a, b, final: true, note: `Done. min(a,b) = ${Math.min(a, b)}.`, line: 5, pyLine: 5 });
+    return steps;
+  }
+
+  function renderMinCostClimbingStairs(cost) {
+    return (stage, step) => {
+      stage.innerHTML = `
+        ${cellsRow(cost, (v, idx) => step.final ? 'dim' : (idx === step.i ? 'cur' : (idx < step.i ? 'dim' : '')))}
+        <div class="viz-panels" style="margin-top:8px">
+          <div class="viz-panel"><div class="viz-panel-lbl">a</div><div class="viz-counter" style="font-size:20px">${step.a}</div></div>
+          <div class="viz-panel"><div class="viz-panel-lbl">b</div><div class="viz-counter" style="font-size:20px">${step.b}</div></div>
+        </div>`;
+    };
+  }
+
+  // ── P2: Decode Ways ───────────────────────────────────────────────────────
+  function traceNumDecodings(s) {
+    let prev2 = 1, prev1 = s[0] !== '0' ? 1 : 0;
+    const steps = [{ i: 0, prev1, note: `Start — s[0]='${s[0]}' → prev1=${prev1}.`, line: 2, pyLine: 2 }];
+    for (let i = 1; i < s.length; i++) {
+      let curr = 0;
+      const parts = [];
+      if (s[i] !== '0') { curr += prev1; parts.push(`single '${s[i]}'`); }
+      const two = +s.slice(i - 1, i + 1);
+      if (two >= 10 && two <= 26) { curr += prev2; parts.push(`pair '${s.slice(i - 1, i + 1)}'`); }
+      [prev2, prev1] = [prev1, curr];
+      steps.push({ i, prev1, note: `i=${i}: valid decodings here → ${parts.join(' + ') || 'none'} = ${curr}.`, line: 8, pyLine: 8 });
+    }
+    steps[steps.length - 1].final = true;
+    return steps;
+  }
+
+  function renderNumDecodings(s) {
+    const chars = s.split('');
+    return (stage, step) => {
+      stage.innerHTML = `
+        ${cellsRow(chars, (v, idx) => step.final ? 'dim' : (idx === step.i ? 'cur' : (idx < step.i ? 'dim' : '')))}
+        <div class="viz-panels" style="margin-top:8px"><div class="viz-panel"><div class="viz-counter">${step.prev1}<span class="viz-counter-label">decodings so far</span></div></div></div>`;
+    };
+  }
+
+  // ── P3: Maximum Product Subarray ──────────────────────────────────────────
+  function traceMaxProduct(nums) {
+    let maxP = nums[0], minP = nums[0], best = nums[0];
+    const steps = [{ i: 0, maxP, minP, best, note: `Start — maxP=minP=best=${nums[0]}.`, line: 2, pyLine: 2 }];
+    for (let i = 1; i < nums.length; i++) {
+      const tmp = maxP;
+      maxP = Math.max(nums[i], maxP * nums[i], minP * nums[i]);
+      minP = Math.min(nums[i], tmp * nums[i], minP * nums[i]);
+      best = Math.max(best, maxP);
+      steps.push({ i, maxP, minP, best, note: `i=${i} (${nums[i]}): maxP=${maxP}, minP=${minP} → best=${best}.`, line: 7, pyLine: 5 });
+    }
+    steps[steps.length - 1].final = true;
+    return steps;
+  }
+
+  function renderMaxProduct(nums) {
+    return (stage, step) => {
+      stage.innerHTML = `
+        ${cellsRow(nums, (v, idx) => step.final ? 'dim' : (idx === step.i ? 'cur' : (idx < step.i ? 'dim' : '')))}
+        <div class="viz-panels" style="margin-top:8px">
+          <div class="viz-panel"><div class="viz-panel-lbl">maxP / minP</div><div class="viz-counter" style="font-size:18px">${step.maxP} / ${step.minP}</div></div>
+          <div class="viz-panel"><div class="viz-counter">${step.best}<span class="viz-counter-label">best so far</span></div></div>
+        </div>`;
+    };
+  }
+
+  // ── P4: Word Break ────────────────────────────────────────────────────────
+  function traceWordBreak(s, wordDict) {
+    const words = new Set(wordDict);
+    const dp = new Array(s.length + 1).fill(false);
+    dp[0] = true;
+    const steps = [{ dp: [...dp], i: 0, note: 'Base case — dp[0]=true (empty string).', line: 4, pyLine: 3 }];
+    for (let i = 1; i <= s.length; i++) {
+      let foundAt = null;
+      for (let j = 0; j < i; j++) {
+        if (dp[j] && words.has(s.slice(j, i))) { dp[i] = true; foundAt = j; break; }
+      }
+      steps.push({ dp: [...dp], i, note: `dp[${i}] ("${s.slice(0, i)}")${foundAt !== null ? ` = true (split at j=${foundAt}: "${s.slice(foundAt, i)}" is a word)` : ' = false'}.`, line: 7, pyLine: 6 });
+    }
+    steps[steps.length - 1].final = true;
+    return steps;
+  }
+
+  function renderWordBreak(s) {
+    return (stage, step) => {
+      const display = step.dp.map(v => v ? 'T' : 'F');
+      stage.innerHTML = `
+        <div class="viz-panel-lbl">"${s}"</div>
+        ${cellsRow(display, (v, idx) => step.final ? (idx === step.i ? 'match' : '') : (idx === step.i ? 'cur' : (idx < step.i ? (step.dp[idx] ? 'seen' : '') : '')))}`;
+    };
+  }
+
+  // ── P5: Partition Equal Subset Sum — 0/1 knapsack ───────────────────────
+  function traceCanPartition(nums) {
+    const total = nums.reduce((a, b) => a + b, 0);
+    if (total % 2) {
+      return [{ dp: [], target: 0, final: true, note: 'Total sum is odd → cannot partition evenly → false.', line: 3, pyLine: 3 }];
+    }
+    const target = total / 2;
+    const dp = new Array(target + 1).fill(false);
+    dp[0] = true;
+    const steps = [{ dp: [...dp], target, note: `total=${total}, target=${target}. dp[0]=true.`, line: 5, pyLine: 5 }];
+    for (const n of nums) {
+      for (let j = target; j >= n; j--) dp[j] = dp[j] || dp[j - n];
+      steps.push({ dp: [...dp], target, note: `after considering ${n}: dp=[${dp.map(v => v ? 'T' : 'F').join(',')}].`, line: 8, pyLine: 8 });
+    }
+    steps.push({ dp: [...dp], target, final: true, note: `Done. Can reach target ${target}? ${dp[target]}.`, line: 9, pyLine: 9 });
+    return steps;
+  }
+
+  function renderCanPartition() {
+    return (stage, step) => {
+      const display = step.dp.map((v, i) => `${i}:${v ? 'T' : 'F'}`);
+      stage.innerHTML = `
+        <div class="viz-panel-lbl">dp[j] — can we form sum j? (target=${step.target})</div>
+        ${chips(display)}`;
+    };
+  }
+
+  // ── Attach everything once the elements exist in the DOM ────────────────
+  mountVisualizer('viz-dp1d-p1', traceMinCostClimbingStairs([10, 15, 20]), withCode('dp1d-p1', renderMinCostClimbingStairs([10, 15, 20])));
+  mountVisualizer('viz-dp1d-p2', traceNumDecodings('226'), withCode('dp1d-p2', renderNumDecodings('226')));
+  mountVisualizer('viz-dp1d-p3', traceMaxProduct([2, 3, -2, 4]), withCode('dp1d-p3', renderMaxProduct([2, 3, -2, 4])));
+  mountVisualizer('viz-dp1d-p4', traceWordBreak('leetcode', ['leet', 'code']), withCode('dp1d-p4', renderWordBreak('leetcode')));
+  mountVisualizer('viz-dp1d-p5', traceCanPartition([1, 5, 11, 5]), withCode('dp1d-p5', renderCanPartition()));
+}

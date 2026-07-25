@@ -1,5 +1,7 @@
 // Section: dpintro
 // Auto-extracted from index.html
+import { autoWrapCodeLines, cellsRow, chips, withCode, mountVisualizer } from '../components/viz-kit.js';
+
 const _html_dpintro = String.raw`
 <div id="sec-dpintro" class="section">
 <div class="sec-header"><div class="sec-meta"><span class="sec-badge dsa">DP · 16</span></div><div class="sec-title">Dynamic Programming — Foundations</div></div>
@@ -86,6 +88,7 @@ const _html_dpintro = String.raw`
     <span class="py-kw">for</span> _ <span class="py-kw">in</span> <span class="py-fn">range</span>(n-<span class="py-num">1</span>): a, b = b, a+b
     <span class="py-kw">return</span> b</pre></div>
 </div>
+<algo-visualizer id="viz-dp-p1" title="Rolling Fibonacci — trace"></algo-visualizer>
 </problem-card>
 
 <problem-card num="P2" title="House Robber" difficulty="easy" tags="1D DP">
@@ -108,6 +111,7 @@ const _html_dpintro = String.raw`
         prev2, prev1 = prev1, <span class="py-fn">max</span>(prev1, prev2+n)
     <span class="py-kw">return</span> prev1</pre></div>
 </div>
+<algo-visualizer id="viz-dp-p2" title="Rob or Skip — trace"></algo-visualizer>
 </problem-card>
 
 <problem-card num="P3" title="Coin Change" difficulty="medium" tags="Unbounded Knapsack">
@@ -134,6 +138,7 @@ const _html_dpintro = String.raw`
             <span class="py-kw">if</span> c &lt;= i: dp[i] = <span class="py-fn">min</span>(dp[i], dp[i-c]+<span class="py-num">1</span>)
     <span class="py-kw">return</span> -<span class="py-num">1</span> <span class="py-kw">if</span> dp[amount] == <span class="py-fn">float</span>(<span class="py-str">'inf'</span>) <span class="py-kw">else</span> dp[amount]</pre></div>
 </div>
+<algo-visualizer id="viz-dp-p3" title="Bottom-Up Coin DP — trace"></algo-visualizer>
 </problem-card>
 
 <problem-card num="P4" title="Unique Paths (2D DP)" difficulty="medium" tags="2D DP,Grid">
@@ -156,6 +161,7 @@ const _html_dpintro = String.raw`
             dp[c] += dp[c-<span class="py-num">1</span>]
     <span class="py-kw">return</span> dp[-<span class="py-num">1</span>]</pre></div>
 </div>
+<algo-visualizer id="viz-dp-p4" title="Row-by-Row DP — trace"></algo-visualizer>
 </problem-card>
 
 <problem-card num="P5" title="Longest Increasing Subsequence" difficulty="hard" tags="1D DP,Binary Search">
@@ -186,16 +192,142 @@ const _html_dpintro = String.raw`
         <span class="py-kw">else</span>: tails[pos] = n
     <span class="py-kw">return</span> <span class="py-fn">len</span>(tails)</pre></div>
 </div>
+<algo-visualizer id="viz-dp-p5" title="Patience Sort — trace"></algo-visualizer>
 </problem-card>
 </div></div></div>
 `;
 
 (function() {
   const main = document.getElementById('main');
+  let section;
   if (main) {
     const wrapper = document.createElement('div');
     wrapper.innerHTML = _html_dpintro.trim();
-    const section = wrapper.firstElementChild;
+    section = wrapper.firstElementChild;
     if (section) main.appendChild(section);
   }
+  if (section) autoWrapCodeLines(section);
+  wireVisualizers();
 })();
+
+// ── Visualizer wiring — traces + renderers for the DP Foundations problems ──
+function wireVisualizers() {
+  // ── P1: Climbing Stairs — rolling Fibonacci ─────────────────────────────
+  function traceClimbStairs(n) {
+    const dp = [1, 1];
+    let a = 1, b = 1;
+    const steps = [{ dp: [...dp], note: 'Base cases — 1 way to be at step 0 or step 1.', line: 2, pyLine: 2 }];
+    for (let i = 2; i <= n; i++) {
+      [a, b] = [b, a + b];
+      dp.push(b);
+      steps.push({ dp: [...dp], note: `step ${i}: ways = ways(${i - 1}) + ways(${i - 2}) = ${b}.`, line: 3, pyLine: 3 });
+    }
+    steps[steps.length - 1].final = true;
+    return steps;
+  }
+
+  function renderClimbStairs() {
+    return (stage, step) => {
+      stage.innerHTML = `
+        <div class="viz-panel-lbl">ways per step</div>
+        ${chips(step.dp, ' new')}
+        <div class="viz-panels" style="margin-top:8px"><div class="viz-panel"><div class="viz-counter">${step.dp[step.dp.length - 1]}<span class="viz-counter-label">ways so far</span></div></div></div>`;
+    };
+  }
+
+  // ── P2: House Robber — dp[i] = max(skip, rob) ───────────────────────────
+  function traceRob(nums) {
+    let prev2 = 0, prev1 = 0;
+    const steps = [{ i: -1, prev1, note: 'Start — prev2=0, prev1=0.', line: 2, pyLine: 2 }];
+    nums.forEach((n, i) => {
+      const newPrev1 = Math.max(prev1, prev2 + n);
+      steps.push({ i, prev1: newPrev1,
+        note: `house ${i} (value ${n}): max(skip=${prev1}, rob=${prev2}+${n}=${prev2 + n}) = ${newPrev1}.`, line: 3, pyLine: 4 });
+      prev2 = prev1; prev1 = newPrev1;
+    });
+    steps[steps.length - 1].final = true;
+    return steps;
+  }
+
+  function renderRob(nums) {
+    return (stage, step) => {
+      stage.innerHTML = `
+        ${cellsRow(nums, (v, i) => step.final ? 'dim' : (i === step.i ? 'cur' : (i < step.i ? 'dim' : '')))}
+        <div class="viz-panels" style="margin-top:8px">
+          <div class="viz-panel"><div class="viz-counter">${step.prev1}<span class="viz-counter-label">max robbed so far</span></div></div>
+        </div>`;
+    };
+  }
+
+  // ── P3: Coin Change — bottom-up DP ───────────────────────────────────────
+  function traceCoinChange(coins, amount) {
+    const dp = new Array(amount + 1).fill(Infinity);
+    dp[0] = 0;
+    const steps = [{ dp: [...dp], i: 0, note: 'Base case — dp[0]=0.', line: 3, pyLine: 2 }];
+    for (let i = 1; i <= amount; i++) {
+      for (const c of coins) if (c <= i) dp[i] = Math.min(dp[i], dp[i - c] + 1);
+      steps.push({ dp: [...dp], i, note: `dp[${i}] = min coins for amount ${i} = ${dp[i] === Infinity ? '∞' : dp[i]}.`, line: 6, pyLine: 5 });
+    }
+    steps.push({ dp: [...dp], i: amount, final: true, note: `Done. Min coins for ${amount} = ${dp[amount] === Infinity ? -1 : dp[amount]}.`, line: 7, pyLine: 6 });
+    return steps;
+  }
+
+  function renderCoinChange() {
+    return (stage, step) => {
+      const dpDisplay = step.dp.map(v => v === Infinity ? '∞' : v);
+      stage.innerHTML = cellsRow(dpDisplay, (v, idx) => step.final ? (idx === step.i ? 'match' : '') : (idx === step.i ? 'cur' : (idx < step.i ? 'seen' : '')));
+    };
+  }
+
+  // ── P4: Unique Paths — 1D row-by-row DP ─────────────────────────────────
+  function traceUniquePaths(m, n) {
+    const dp = new Array(n).fill(1);
+    const steps = [{ dp: [...dp], row: 0, note: 'Start — row 0 (top row) is all 1s.', line: 2, pyLine: 2 }];
+    for (let r = 1; r < m; r++) {
+      for (let c = 1; c < n; c++) dp[c] += dp[c - 1];
+      steps.push({ dp: [...dp], row: r, note: `row ${r}: dp[c] += dp[c-1] for each column → [${dp.join(',')}].`, line: 5, pyLine: 5 });
+    }
+    steps[steps.length - 1].final = true;
+    return steps;
+  }
+
+  function renderUniquePaths() {
+    return (stage, step) => {
+      stage.innerHTML = `
+        <div class="viz-panel-lbl">dp row (after row ${step.row})</div>
+        ${chips(step.dp)}
+        <div class="viz-panels" style="margin-top:8px"><div class="viz-panel"><div class="viz-counter">${step.dp[step.dp.length - 1]}<span class="viz-counter-label">total paths</span></div></div></div>`;
+    };
+  }
+
+  // ── P5: Longest Increasing Subsequence — patience sort + binary search ─
+  function traceLengthOfLIS(nums) {
+    const tails = [];
+    const steps = [{ tails: [], note: 'Start — tails = [].', line: 2, pyLine: 3 }];
+    nums.forEach((n, idx) => {
+      let lo = 0, hi = tails.length;
+      while (lo < hi) { const m = (lo + hi) >>> 1; if (tails[m] < n) lo = m + 1; else hi = m; }
+      const extended = lo === tails.length;
+      tails[lo] = n;
+      steps.push({ tails: [...tails], idx, note: `n=${n}: ${extended ? `extend tails → length ${tails.length}` : `replace tails[${lo}] with ${n}`}.`, line: 6, pyLine: extended ? 6 : 7 });
+    });
+    steps.push({ tails: [...tails], final: true, note: `Done. Longest increasing subsequence length = ${tails.length}.`, line: 8, pyLine: 8 });
+    return steps;
+  }
+
+  function renderLengthOfLIS(nums) {
+    return (stage, step) => {
+      stage.innerHTML = `
+        ${cellsRow(nums, (v, i) => step.final ? 'dim' : (i === step.idx ? 'cur' : (i < step.idx ? 'dim' : '')))}
+        <div class="viz-panel-lbl" style="margin-top:10px">tails (smallest tail per length)</div>
+        ${chips(step.tails, ' new')}`;
+    };
+  }
+
+  // ── Attach everything once the elements exist in the DOM ────────────────
+  mountVisualizer('viz-dp-p1', traceClimbStairs(5), withCode('dp-p1', renderClimbStairs()));
+  mountVisualizer('viz-dp-p2', traceRob([1, 2, 3, 1]), withCode('dp-p2', renderRob([1, 2, 3, 1])));
+  mountVisualizer('viz-dp-p3', traceCoinChange([1, 5, 11], 15), withCode('dp-p3', renderCoinChange()));
+  mountVisualizer('viz-dp-p4', traceUniquePaths(3, 4), withCode('dp-p4', renderUniquePaths()));
+  mountVisualizer('viz-dp-p5', traceLengthOfLIS([10, 9, 2, 5, 3, 7, 101, 18]), withCode('dp-p5', renderLengthOfLIS([10, 9, 2, 5, 3, 7, 101, 18])));
+}
