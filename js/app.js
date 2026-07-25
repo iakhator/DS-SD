@@ -7,6 +7,7 @@
 import '../components/problem-card.js';
 import '../components/code-block.js';
 import '../components/lang-toggle.js';
+import '../components/algo-visualizer.js';
 
 // ── Section registry (order defines nav order) ──────────────────────────────
 const SECTIONS = [

@@ -1,5 +1,7 @@
 // Section: complexity
 // Auto-extracted from index.html
+import { autoWrapCodeLines, cellsRow, chips, withCode, mountVisualizer } from '../components/viz-kit.js';
+
 const _html_complexity = String.raw`
 <div id="sec-complexity" class="section active">
 <div class="sec-header">
@@ -38,6 +40,10 @@ const _html_complexity = String.raw`
 
 Prefer: O(1) > O(log n) > O(n) > O(n log n) > O(n²) > O(2ⁿ) > O(n!)
 </pre></div>
+
+<div class="h3">Watch It Grow — Animated Race</div>
+<p style="font-size:13px;color:var(--muted);margin:0 0 10px">Press play. As <code>n</code> climbs from 1 to 20, watch how fast each complexity class's operation count pulls away — bar length uses a log scale so everything still fits, but the numbers on the right are the real operation counts.</p>
+<algo-visualizer id="viz-race" title="Operations vs n"></algo-visualizer>
 
 <div class="h2">Complexity Cheat Sheet</div>
 <div class="tbl-wrap"><table>
@@ -190,6 +196,7 @@ i = n
         seen.add(num)
     <span class="py-kw">return</span> count</pre></div>
 </div>
+<algo-visualizer id="viz-p1" title="HashSet Pair Counting — trace"></algo-visualizer>
 </problem-card>
 
 <problem-card num="P2" title="Find if array has duplicate within k distance" difficulty="easy" tags="Array,HashMap">
@@ -219,6 +226,7 @@ i = n
         last_seen[num] = i
     <span class="py-kw">return</span> <span class="py-kw">False</span></pre></div>
 </div>
+<algo-visualizer id="viz-p2" title="Nearby Duplicate — HashMap trace"></algo-visualizer>
 </problem-card>
 
 <problem-card num="P3" title="First recurring character" difficulty="easy" tags="String,Set">
@@ -246,6 +254,7 @@ i = n
         seen.add(ch)
     <span class="py-kw">return</span> <span class="py-kw">None</span></pre></div>
 </div>
+<algo-visualizer id="viz-p3" title="First Recurring Character — Set trace"></algo-visualizer>
 </problem-card>
 
 <problem-card num="P4" title="Count operations to reduce to 1 (analyze recursion)" difficulty="medium" tags="Math,Complexity">
@@ -276,6 +285,7 @@ i = n
         steps += <span class="py-num">1</span>
     <span class="py-kw">return</span> steps</pre></div>
 </div>
+<algo-visualizer id="viz-p4" title="Countdown to 0 — O(log n) trace"></algo-visualizer>
 </problem-card>
 
 <problem-card num="P5" title="Find all subsets (power set)" difficulty="hard" tags="Recursion,O(2ⁿ)">
@@ -334,6 +344,7 @@ i = n
         result.append([nums[i] <span class="py-kw">for</span> i <span class="py-kw">in</span> <span class="py-fn">range</span>(n) <span class="py-kw">if</span> mask &amp; (<span class="py-num">1</span> &lt;&lt; i)])
     <span class="py-kw">return</span> result</pre></div>
 </div>
+<algo-visualizer id="viz-p5" title="Bitmask Subset Generation — O(2ⁿ) trace"></algo-visualizer>
 </problem-card>
 
 </div><!-- end problems-grid -->
@@ -343,10 +354,224 @@ i = n
 
 (function() {
   const main = document.getElementById('main');
+  let section;
   if (main) {
     const wrapper = document.createElement('div');
     wrapper.innerHTML = _html_complexity.trim();
-    const section = wrapper.firstElementChild;
+    section = wrapper.firstElementChild;
     if (section) main.appendChild(section);
   }
+  if (section) autoWrapCodeLines(section);
+  wireVisualizers();
 })();
+
+// ── Visualizer wiring — traces + renderers for the Big-O section ────────────
+function wireVisualizers() {
+  // ── Growth curve race ───────────────────────────────────────────────────
+  function buildRaceSteps(maxN) {
+    const steps = [];
+    for (let n = 1; n <= maxN; n++) {
+      steps.push({
+        n,
+        classes: [
+          { name: 'O(1)',        color: 'var(--green)',   ops: 1 },
+          { name: 'O(log n)',    color: '#79d4f5',         ops: Math.max(1, Math.log2(n)) },
+          { name: 'O(n)',        color: 'var(--accent)',   ops: n },
+          { name: 'O(n log n)',  color: 'var(--accent2)',  ops: n * Math.max(1, Math.log2(n)) },
+          { name: 'O(n²)',  color: 'var(--amber)',    ops: n * n },
+          { name: 'O(2ⁿ)',  color: 'var(--red)',      ops: Math.pow(2, n) },
+        ],
+        note: `n = ${n} — watch O(2ⁿ) pull away from everything else.`,
+      });
+    }
+    steps[steps.length - 1].final = true;
+    return steps;
+  }
+
+  function renderRace(stage, step) {
+    const maxLog = Math.log10(Math.pow(2, 20) + 1);
+    stage.innerHTML = `
+      <div class="viz-race-n">n = <strong>${step.n}</strong></div>
+      ${step.classes.map(c => {
+        const pct = Math.max(2, (Math.log10(c.ops + 1) / maxLog) * 100).toFixed(1);
+        const opsLabel = c.ops >= 1e6 ? c.ops.toExponential(2) : Math.round(c.ops).toLocaleString();
+        return `<div class="viz-race-row">
+          <div class="viz-race-name">${c.name}</div>
+          <div class="viz-race-track"><div class="viz-race-fill" style="width:${pct}%;background:${c.color}"></div></div>
+          <div class="viz-race-ops">${opsLabel}</div>
+        </div>`;
+      }).join('')}`;
+  }
+
+  // ── P1: HashSet pair counting ───────────────────────────────────────────
+  function traceCountPairs(nums, target) {
+    const seen = new Set();
+    const usedPairs = new Set();
+    let count = 0;
+    const steps = [{ i: -1, seen: [], count: 0, note: 'Start — seen = {}, count = 0.', line: 5, pyLine: 5 }];
+    nums.forEach((num, i) => {
+      const complement = target - num;
+      const pairKey = [Math.min(num, complement), Math.max(num, complement)].join(',');
+      let note, isPair = false, line, pyLine;
+      if (seen.has(complement) && !usedPairs.has(pairKey)) {
+        count++;
+        usedPairs.add(pairKey);
+        isPair = true;
+        line = 9; pyLine = 9;
+        note = `i=${i}: num=${num}, need ${complement} → found in seen! pair (${Math.min(num, complement)}, ${Math.max(num, complement)}). count=${count}`;
+      } else if (seen.has(complement)) {
+        line = 8; pyLine = 8;
+        note = `i=${i}: num=${num}, need ${complement} → that pair was already counted, skip.`;
+      } else {
+        line = 12; pyLine = 11;
+        note = `i=${i}: num=${num}, need ${complement} → not in seen yet. Add ${num} to seen.`;
+      }
+      seen.add(num);
+      steps.push({ i, seen: [...seen], count, isPair, note, line, pyLine });
+    });
+    steps.push({ i: -1, seen: [...seen], count, note: `Done. Total pairs = ${count}.`, final: true, line: 14, pyLine: 12 });
+    return steps;
+  }
+
+  function renderCountPairs(nums, target) {
+    return (stage, step) => {
+      stage.innerHTML = `
+        ${cellsRow(nums, (v, i) => step.final ? 'dim' : (i === step.i ? (step.isPair ? 'match' : 'cur') : (step.i >= 0 && i < step.i ? 'dim' : '')))}
+        <div class="viz-panels">
+          <div class="viz-panel"><div class="viz-panel-lbl">seen set</div>${chips(step.seen)}</div>
+          <div class="viz-panel"><div class="viz-counter">${step.count}<span class="viz-counter-label">pairs found</span></div></div>
+          <div class="viz-panel"><div class="viz-panel-lbl">target</div><div class="viz-counter" style="font-size:16px">${target}</div></div>
+        </div>`;
+    };
+  }
+
+  // ── P2: Nearby duplicate — hashmap of last-seen index ───────────────────
+  function traceNearbyDup(nums, k) {
+    const lastSeen = {};
+    const steps = [{ i: -1, map: {}, note: 'Start — lastSeen = {}.', line: 2, pyLine: 2 }];
+    for (let i = 0; i < nums.length; i++) {
+      const num = nums[i];
+      let note;
+      if (lastSeen[num] !== undefined && i - lastSeen[num] <= k) {
+        note = `i=${i}: nums[i]=${num} last seen at ${lastSeen[num]}, distance ${i - lastSeen[num]} ≤ k=${k} → TRUE`;
+        steps.push({ i, map: { ...lastSeen }, found: true, note, stop: true, final: true, line: 5, pyLine: 5 });
+        return steps;
+      } else if (lastSeen[num] !== undefined) {
+        note = `i=${i}: nums[i]=${num} last seen at ${lastSeen[num]}, distance ${i - lastSeen[num]} > k=${k} — too far, update index.`;
+      } else {
+        note = `i=${i}: nums[i]=${num} not seen before. Record index ${i}.`;
+      }
+      lastSeen[num] = i;
+      steps.push({ i, map: { ...lastSeen }, found: false, note, line: 6, pyLine: 6 });
+    }
+    steps.push({ i: -1, map: { ...lastSeen }, note: 'Done. No nearby duplicate found → FALSE', final: true, line: 8, pyLine: 7 });
+    return steps;
+  }
+
+  function renderNearbyDup(nums) {
+    return (stage, step) => {
+      const mapChips = Object.entries(step.map).map(([val, idx]) => `${val}:${idx}`);
+      stage.innerHTML = `
+        ${cellsRow(nums, (v, i) => step.final && !step.found ? 'dim' : (i === step.i ? (step.found ? 'match' : 'cur') : (step.i >= 0 && i < step.i ? 'dim' : '')))}
+        <div class="viz-panels">
+          <div class="viz-panel"><div class="viz-panel-lbl">lastSeen (val:idx)</div>${chips(mapChips)}</div>
+          <div class="viz-panel"><div class="viz-counter">${step.found ? 'TRUE' : (step.final ? 'FALSE' : '…')}<span class="viz-counter-label">result so far</span></div></div>
+        </div>`;
+    };
+  }
+
+  // ── P3: First recurring character ───────────────────────────────────────
+  function traceFirstRecurring(str) {
+    const seen = new Set();
+    const steps = [{ i: -1, seen: [], note: 'Start — seen = {}.', line: 2, pyLine: 2 }];
+    for (let i = 0; i < str.length; i++) {
+      const ch = str[i];
+      if (seen.has(ch)) {
+        steps.push({ i, seen: [...seen], found: true, note: `i=${i}: '${ch}' already in seen → first recurring character is '${ch}'.`, stop: true, final: true, line: 4, pyLine: 4 });
+        return steps;
+      }
+      seen.add(ch);
+      steps.push({ i, seen: [...seen], found: false, note: `i=${i}: '${ch}' not seen yet. Add to seen.`, line: 5, pyLine: 5 });
+    }
+    steps.push({ i: -1, seen: [...seen], note: 'Done. All characters unique → null.', final: true, line: 7, pyLine: 6 });
+    return steps;
+  }
+
+  function renderFirstRecurring(str) {
+    const chars = str.split('');
+    return (stage, step) => {
+      stage.innerHTML = `
+        ${cellsRow(chars, (v, i) => step.final && !step.found ? 'dim' : (i === step.i ? (step.found ? 'match' : 'cur') : (step.i >= 0 && i < step.i ? 'dim' : '')))}
+        <div class="viz-panels">
+          <div class="viz-panel"><div class="viz-panel-lbl">seen set</div>${chips(step.seen)}</div>
+          <div class="viz-panel"><div class="viz-counter">${step.found ? `'${step.seen[step.seen.length - 1]}'` : (step.final ? 'null' : '…')}<span class="viz-counter-label">result</span></div></div>
+        </div>`;
+    };
+  }
+
+  // ── P4: Countdown to 0 — halve or subtract ──────────────────────────────
+  function traceCountSteps(n0) {
+    let n = n0, count = 0;
+    const steps = [{ n, count: 0, note: `Start n=${n0}.`, line: 2, pyLine: 2 }];
+    while (n > 0) {
+      const even = n % 2 === 0;
+      const next = even ? n / 2 : n - 1;
+      count++;
+      steps.push({ n: next, prevN: n, op: even ? '÷2' : '-1', count, note: `n=${n} is ${even ? 'even' : 'odd'} → ${even ? `n/2 = ${next}` : `n-1 = ${next}`}. steps=${count}`, line: even ? 4 : 5, pyLine: 4 });
+      n = next;
+    }
+    steps[steps.length - 1].final = true;
+    steps[steps.length - 1].line = 8;
+    steps[steps.length - 1].pyLine = 6;
+    return steps;
+  }
+
+  function renderCountSteps(n0) {
+    const log2n = Math.log2(n0).toFixed(2);
+    return (stage, step) => {
+      stage.innerHTML = `
+        <div class="viz-panels">
+          <div class="viz-panel"><div class="viz-panel-lbl">n</div><div class="viz-counter">${step.n}</div></div>
+          <div class="viz-panel"><div class="viz-panel-lbl">steps so far</div><div class="viz-counter">${step.count}<span class="viz-counter-label">vs log₂(${n0}) ≈ ${log2n}</span></div></div>
+          <div class="viz-panel"><div class="viz-panel-lbl">last op</div><div class="viz-counter" style="font-size:16px">${step.op ?? '—'}</div></div>
+        </div>`;
+    };
+  }
+
+  // ── P5: Bitmask subset generation ───────────────────────────────────────
+  function traceSubsetsBitmask(nums) {
+    const n = nums.length;
+    const total = 1 << n;
+    const steps = [{ mask: -1, bin: ''.padStart(n, '0'), subsets: [], note: `Start. There will be 2^${n} = ${total} subsets.`, line: 19, pyLine: 15 }];
+    const found = [];
+    for (let mask = 0; mask < total; mask++) {
+      const subset = [];
+      for (let i = 0; i < n; i++) if (mask & (1 << i)) subset.push(nums[i]);
+      found.push(subset.length ? `{${subset.join(',')}}` : '{}');
+      steps.push({ mask, bin: mask.toString(2).padStart(n, '0'), subsets: [...found], note: `mask=${mask} (${mask.toString(2).padStart(n, '0')}) → subset ${subset.length ? `{${subset.join(',')}}` : '{}'}`, line: 22, pyLine: 16 });
+    }
+    steps[steps.length - 1].final = true;
+    steps[steps.length - 1].line = 25;
+    steps[steps.length - 1].pyLine = 17;
+    return steps;
+  }
+
+  function renderSubsetsBitmask(nums) {
+    return (stage, step) => {
+      const bits = step.bin.split('').reverse();
+      stage.innerHTML = `
+        ${cellsRow(bits, (v) => v === '1' ? 'match' : '')}
+        <div class="viz-panels">
+          <div class="viz-panel"><div class="viz-panel-lbl">subsets found (${step.subsets.length}/${1 << nums.length})</div>${chips(step.subsets, ' new')}</div>
+        </div>`;
+    };
+  }
+
+  // ── Attach everything once the elements exist in the DOM ────────────────
+  mountVisualizer('viz-race', buildRaceSteps(20), renderRace);
+  mountVisualizer('viz-p1', traceCountPairs([1, 5, 3, 2, 7, 5], 8), withCode('p1', renderCountPairs([1, 5, 3, 2, 7, 5], 8)));
+  mountVisualizer('viz-p2', traceNearbyDup([1, 2, 3, 1], 3), withCode('p2', renderNearbyDup([1, 2, 3, 1])));
+  mountVisualizer('viz-p3', traceFirstRecurring('ABCABD'), withCode('p3', renderFirstRecurring('ABCABD')));
+  mountVisualizer('viz-p4', traceCountSteps(8), withCode('p4', renderCountSteps(8)));
+  mountVisualizer('viz-p5', traceSubsetsBitmask([1, 2, 3]), withCode('p5', renderSubsetsBitmask([1, 2, 3])));
+}
